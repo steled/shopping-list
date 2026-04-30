@@ -1,0 +1,278 @@
+name: 🚀 Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g., v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+env:
+  REGISTRY: containers.datagroup.ghe.com
+  IMAGE_NAME: dgops/shopping-list
+  DOCKERHUB_IMAGE_NAME: dgops/shopping-list
+  HELM_CHART_PATH: helm/shopping-list
+
+jobs:
+  release:
+    name: Build, Push & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.tag }}" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          VERSION_CLEAN="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION_CLEAN}" >> "$GITHUB_OUTPUT"
+          echo "Releasing: ${TAG} (${VERSION_CLEAN})"
+
+      # ── Docker ───────────────────────────────────────────────────────────────
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.tag }}
+            type=raw,value=latest
+
+      - name: Extract Docker Hub metadata
+        id: meta-dockerhub
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.DOCKERHUB_IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.version.outputs.tag }}
+            type=raw,value=latest
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.tag }}
+
+      - name: Push Docker image to Docker Hub
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta-dockerhub.outputs.tags }}
+          labels: ${{ steps.meta-dockerhub.outputs.labels }}
+          cache-from: type=gha
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.tag }}
+
+      # ── Helm Chart ───────────────────────────────────────────────────────────
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v5
+
+      - name: Install yq
+        uses: mikefarah/yq@v4.53.2
+
+      - name: Update Chart.yaml versions
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          yq -i ".version = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
+          yq -i ".appVersion = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
+          echo "Updated Chart.yaml:"
+          cat "${HELM_CHART_PATH}/Chart.yaml"
+
+      - name: Package Helm chart
+        id: helm-package
+        run: |
+          helm package "${HELM_CHART_PATH}" --destination /tmp/helm-output
+          CHART_FILE=$(ls /tmp/helm-output/*.tgz)
+          echo "chart_file=${CHART_FILE}" >> "$GITHUB_OUTPUT"
+          echo "Packaged: ${CHART_FILE}"
+
+      - name: Push Helm chart to OCI registry
+        run: |
+          helm registry login "${{ env.REGISTRY }}" \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GITHUB_TOKEN }}"
+          helm push "${{ steps.helm-package.outputs.chart_file }}" \
+            "oci://${{ env.REGISTRY }}/dgops/charts"
+
+      # ── GitHub Release ───────────────────────────────────────────────────────
+
+      - name: Generate changelog
+        id: changelog
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            PREV_DATE=$(git log -1 --format="%cI" "${PREVIOUS_TAG}")
+          else
+            PREV_DATE="1970-01-01T00:00:00Z"
+          fi
+          CURR_DATE=$(git log -1 --format="%cI" HEAD)
+
+          MERGED_PRS=$(gh api \
+            "repos/DGOPS/cloud-ops.k8s.shopping-list/pulls?state=closed&base=main&per_page=100" \
+            --jq \
+            --arg prev "$PREV_DATE" \
+            --arg curr "$CURR_DATE" \
+            '[.[] | select(.merged_at != null and .merged_at > $prev and .merged_at <= $curr)
+              | {title: .title, number: .number}] | reverse | .[] | "\(.title)\t\(.number)"')
+
+          BREAKING=""
+          FEATURES=""
+          FIXES=""
+          CHORE=""
+
+          while IFS=$'\t' read -r title number; do
+            [ -z "$title" ] && continue
+            echo "$title" | grep -qE "^chore: update version references" && continue
+            URL="https://datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list/pull/${number}"
+            LINE="- ${title} ([#${number}](${URL}))"
+            if echo "$title" | grep -qE "^[a-z]+(\(.+\))?!:|BREAKING CHANGE"; then
+              BREAKING="${BREAKING}\n${LINE}"
+            elif echo "$title" | grep -qE "^feat(\(.+\))?:"; then
+              FEATURES="${FEATURES}\n${LINE}"
+            elif echo "$title" | grep -qE "^fix(\(.+\))?:|^perf(\(.+\))?:"; then
+              FIXES="${FIXES}\n${LINE}"
+            else
+              CHORE="${CHORE}\n${LINE}"
+            fi
+          done <<< "$MERGED_PRS"
+
+          {
+            echo "RELEASE_NOTES<<EOF"
+            if [ -n "$BREAKING" ]; then
+              echo "## ⚠️ Breaking Changes"
+              echo ""
+              echo -e "$BREAKING"
+              echo ""
+            fi
+            if [ -n "$FEATURES" ]; then
+              echo "## ✨ Features"
+              echo ""
+              echo -e "$FEATURES"
+              echo ""
+            fi
+            if [ -n "$FIXES" ]; then
+              echo "## 🐛 Bug Fixes"
+              echo ""
+              echo -e "$FIXES"
+              echo ""
+            fi
+            if [ -n "$CHORE" ]; then
+              echo "## 🔧 Maintenance"
+              echo ""
+              echo -e "$CHORE"
+              echo ""
+            fi
+            echo "## 📦 Artifacts"
+            echo ""
+            echo "**Docker Image**"
+            echo "\`\`\`"
+            echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}"
+            echo "${{ env.DOCKERHUB_IMAGE_NAME }}:${{ steps.version.outputs.tag }}"
+            echo "\`\`\`"
+            echo ""
+            echo "**Helm Chart**"
+            echo "\`\`\`bash"
+            echo "helm install shopping-list oci://${{ env.REGISTRY }}/dgops/charts/shopping-list --version ${{ steps.version.outputs.version }}"
+            echo "\`\`\`"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
+          body: ${{ env.RELEASE_NOTES }}
+          files: ${{ steps.helm-package.outputs.chart_file }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── Update version references in main (via PR) ────────────────────────
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Update version references via PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          BRANCH="chore/version-refs-${TAG}"
+
+          git checkout -f main
+          git pull origin main
+          git checkout -b "${BRANCH}"
+
+          yq -i ".version = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
+          yq -i ".appVersion = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
+
+          sed -i "s|--version [0-9]\+\.[0-9]\+\.[0-9]\+|--version ${VERSION}|g" README.md
+
+          if git diff --quiet; then
+            echo "No version reference changes to commit"
+            exit 0
+          fi
+
+          git add helm/shopping-list/Chart.yaml README.md
+          git commit -m "chore: update version references to ${TAG} [skip ci]"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --title "chore: update version references to ${TAG}" \
+            --body "Automated version reference update after release ${TAG}." \
+            --base main \
+            --head "${BRANCH}" \
+            --label "non-review-needed"
+          echo "✅ Version reference PR created for ${TAG}"

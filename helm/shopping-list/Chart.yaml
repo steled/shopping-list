@@ -1,0 +1,16 @@
+apiVersion: v2
+name: shopping-list
+description: Lightweight shopping list web application
+type: application
+version: v0.1.0
+appVersion: "v0.1.0"
+keywords:
+  - shopping
+  - list
+  - grocery
+home: https://datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list
+sources:
+  - https://datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list
+maintainers:
+  - name: DGOPS
+    email: dgops-kubernetes@datagroup.de

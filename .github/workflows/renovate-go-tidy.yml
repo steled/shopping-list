@@ -1,0 +1,63 @@
+name: Renovate Go Mod Tidy
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  go-mod-tidy:
+    # Only run on Renovate PRs from the same repository (not forks) and created by self-hosted-renovate bot
+    if: >
+      startsWith(github.head_ref, 'renovate/') &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor == 'self-hosted-renovate[bot]'
+    name: Run go mod tidy on Renovate PR
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref }}
+          # GITHUB_TOKEN is sufficient here because we do not want to trigger additional workflow runs
+          # (such as CI or deployment pipelines) after the go mod tidy commit. GitHub restricts GITHUB_TOKEN
+          # from triggering workflows on push events to prevent recursive workflow executions.
+          # If you need the push to trigger other workflows (e.g., to run CI on the updated branch),
+          # use a personal access token like secrets.RENOVATE_TOKEN instead.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: 'go.mod'
+
+      - name: Run go mod tidy
+        run: go mod tidy
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          if ! git diff --exit-code go.mod go.sum; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected after go mod tidy"
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes needed"
+          fi
+
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add go.mod go.sum
+          git commit -m "chore: run go mod tidy" -m "Automated go mod tidy after dependency update by Renovate"
+          git push

@@ -1,0 +1,111 @@
+replicaCount: 1
+
+image:
+  repository: dgops/shopping-list
+  pullPolicy: IfNotPresent
+  # Defaults to .Chart.AppVersion when empty
+  tag: ""
+
+imagePullSecrets:
+  - name: dockerhub-pull-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  fsGroup: 1001
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  runAsGroup: 1001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8080
+
+# ── Authentication ────────────────────────────────────────────────────────────
+auth:
+  # Login username
+  username: admin
+  # Login password (plain text; compared with bcrypt at runtime). Required.
+  password: ""
+  # HMAC secret for session cookie signing (min. 32 random bytes). Required.
+  sessionSecret: ""
+  # Reference an existing Secret instead of creating one.
+  # Must contain keys: username, password, session-secret
+  existingSecret: ""
+
+# ── Persistence (SQLite) ──────────────────────────────────────────────────────
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 1Gi
+  mountPath: /data
+
+# ── Networking ────────────────────────────────────────────────────────────────
+# type: "gateway"  → creates a Gateway API HTTPRoute (default)
+# type: "ingress"  → creates a classic Kubernetes Ingress
+networking:
+  type: gateway
+
+  gateway:
+    hostname: shopping-list.tools.example.lan
+    parentRefs:
+      - name: api-gateway
+        namespace: nginx-gateway
+        sectionName: ""
+
+  ingress:
+    className: ""
+    annotations: {}
+    hostname: ""
+    tls: []
+    # tls:
+    #   - secretName: shopping-list-tls
+    #     hosts:
+    #       - shopping.example.com
+
+# ── Resources ─────────────────────────────────────────────────────────────────
+resources:
+  limits:
+    cpu: 100m
+    memory: 64Mi
+  requests:
+    cpu: 20m
+    memory: 32Mi
+
+# ── Probes ────────────────────────────────────────────────────────────────────
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 10
+  periodSeconds: 30
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

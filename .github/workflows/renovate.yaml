@@ -1,0 +1,13 @@
+name: 🤖 Renovate (via Reusable)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 1' # At 00:00 on Monday.
+
+jobs:
+  renovate:
+    uses: DGOPS/repo_template/.github/workflows/renovate-reusable.yml@main
+    with:
+      logLevel: "debug"
+    secrets: inherit

@@ -1,0 +1,17 @@
+name: 🤖 Merge without approval for exempt labels (via Reusable)
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  call-org-workflow:
+    uses: DGOPS/repo_template/.github/workflows/label-bypass-merge.yml@main
+    with:
+      allowed-team-slug: k8s
+      label: non-review-needed
+    secrets: inherit

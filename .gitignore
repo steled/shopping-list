@@ -1,0 +1,21 @@
+# Binary
+/shopping-list
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# Env / secrets
+.env
+.env.local
+credentials.sh
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Go tooling
+vendor/
