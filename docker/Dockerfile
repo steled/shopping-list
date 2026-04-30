@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Build stage ───────────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 ARG APP_VERSION=dev
 
@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o /shopping-list .
 
 # ── Final stage ───────────────────────────────────────────────────────────────
-FROM alpine:3.21
+FROM alpine:3.23
 
 ARG APP_VERSION=dev
 
