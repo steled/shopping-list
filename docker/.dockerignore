@@ -1,0 +1,23 @@
+.git/
+.github/
+.vscode/
+.idea/
+
+# Test artifacts
+*_test.go
+coverage.*
+
+# Docker & Helm
+docker/
+helm/
+
+# Docs
+*.md
+LICENSE
+
+# Dev database
+*.db
+*.db-shm
+*.db-wal
+
+# Go build cache
