@@ -12,7 +12,6 @@
       "matchPackageNames": ["golang", "alpine"],
       "groupName": "Go/Alpine base images",
       "automerge": false,
-      "schedule": ["before 3am on Monday"],
       "commitMessagePrefix": "chore(deps):",
       "semanticCommitType": "chore",
       "semanticCommitScope": "deps"
@@ -22,7 +21,6 @@
       "matchManagers": ["gomod"],
       "groupName": "Go dependencies",
       "automerge": false,
-      "schedule": ["before 3am on Monday"],
       "commitMessagePrefix": "chore(deps):",
       "semanticCommitType": "chore",
       "semanticCommitScope": "deps"
@@ -32,7 +30,6 @@
       "matchManagers": ["github-actions"],
       "groupName": "GitHub Actions",
       "automerge": false,
-      "schedule": ["before 3am on Monday"],
       "commitMessagePrefix": "chore(ci):",
       "semanticCommitType": "chore",
       "semanticCommitScope": "ci"
