@@ -61,7 +61,7 @@ func (d *DB) GetItems() ([]Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var items []Item
 	for rows.Next() {

@@ -11,7 +11,7 @@ func TestCRUD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create
 	item, err := db.CreateItem("Milch", 2)
@@ -55,7 +55,7 @@ func TestReorder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	a, _ := db.CreateItem("A", 1)
 	b, _ := db.CreateItem("B", 1)
@@ -83,7 +83,7 @@ func TestGetItemsEmptyList(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	items, err := db.GetItems()
 	if err != nil {

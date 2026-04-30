@@ -1,4 +1,4 @@
-name: Renovate Go Mod Tidy
+name: 🧹 Renovate Go Mod Tidy
 
 on:
   pull_request:
