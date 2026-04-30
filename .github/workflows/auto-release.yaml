@@ -12,7 +12,6 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'docker/Dockerfile'
-      - 'helm/**'
 
 permissions:
   contents: write
