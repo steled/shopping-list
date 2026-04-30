@@ -14,7 +14,7 @@
 module.exports = {
   extends: ['@commitlint/config-conventional'],
   ignores: [
-    (message) => message.includes('Update') && message.match(/^(feat|fix|chore)\(deps\):/),
+    (message) => /^(feat|fix|chore)\(deps\):/.test(message),
   ],
   rules: {
     'type-enum': [
