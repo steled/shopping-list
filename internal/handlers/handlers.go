@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list/internal/auth"
-	"datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list/internal/database"
+	"github.com/steled/shopping-list/internal/auth"
+	"github.com/steled/shopping-list/internal/database"
 )
 
 // Handler holds all HTTP handler dependencies.

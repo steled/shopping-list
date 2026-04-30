@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list/internal/auth"
-	"datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list/internal/database"
-	"datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list/internal/handlers"
+	"github.com/steled/shopping-list/internal/auth"
+	"github.com/steled/shopping-list/internal/database"
+	"github.com/steled/shopping-list/internal/handlers"
 )
 
 //go:embed templates static
@@ -33,7 +33,7 @@ func main() {
 		slog.Error("failed to open database", "err", err)
 		os.Exit(1)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	a := auth.New(username, password, sessionSecret)
 

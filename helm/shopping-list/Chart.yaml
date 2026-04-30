@@ -8,9 +8,9 @@ keywords:
   - shopping
   - list
   - grocery
-home: https://datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list
+home: https://github.com/steled/shopping-list
 sources:
-  - https://datagroup.ghe.com/DGOPS/cloud-ops.k8s.shopping-list
+  - https://github.com/steled/shopping-list
 maintainers:
   - name: DGOPS
     email: dgops-kubernetes@datagroup.de

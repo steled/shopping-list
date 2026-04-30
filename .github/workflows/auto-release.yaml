@@ -72,7 +72,11 @@ jobs:
 
           echo "Bump type: ${BUMP}"
 
-          VERSION="${LATEST_TAG#v}"
+          if [ -n "${LATEST_TAG}" ]; then
+            VERSION="${LATEST_TAG#v}"
+          else
+            VERSION="0.0.0"
+          fi
           IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
           case "$BUMP" in
             major) NEW_VERSION="$((MAJOR + 1)).0.0" ;;
@@ -101,6 +105,6 @@ jobs:
           curl -X POST \
             -H "Authorization: Bearer ${GH_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
-            "${{ github.api_url }}/repos/${{ github.repository }}/actions/workflows/release.yaml/dispatches" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/release.yaml/dispatches" \
             -d "{\"ref\":\"main\",\"inputs\":{\"tag\":\"${version}\"}}"
           echo "✅ Release workflow triggered for ${version}"
