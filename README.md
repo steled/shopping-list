@@ -98,7 +98,7 @@ docker pull ghcr.io/steled/shopping-list:latest
 
 ```bash
 helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
-  --version 0.1.1 \
+  --version 0.1.0 \
   --set auth.password=secret \
   --set auth.sessionSecret=$(openssl rand -hex 32) \
   --set networking.gateway.hostname=shopping-list.example.com
