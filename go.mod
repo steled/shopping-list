@@ -3,7 +3,7 @@ module github.com/steled/shopping-list
 go 1.25.0
 
 require (
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.45.0
 	modernc.org/sqlite v1.50.0
 )
 
