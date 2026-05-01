@@ -84,6 +84,16 @@ jobs:
           echo "Updated Chart.yaml:"
           cat "${HELM_CHART_PATH}/Chart.yaml"
 
+      - name: Install helm-docs
+        env:
+          HELM_DOCS_VERSION: "1.14.2"
+        run: |
+          curl -sSL "https://github.com/norwoodj/helm-docs/releases/download/v${HELM_DOCS_VERSION}/helm-docs_${HELM_DOCS_VERSION}_Linux_x86_64.tar.gz" \
+            | tar -xz -C /usr/local/bin helm-docs
+
+      - name: Generate Helm README
+        run: helm-docs --chart-search-root "${HELM_CHART_PATH}"
+
       - name: Package Helm chart
         id: helm-package
         run: |
