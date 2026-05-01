@@ -79,8 +79,9 @@ jobs:
       - name: Update Chart.yaml versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
+          TAG="${{ steps.version.outputs.tag }}"
           yq -i ".version = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
-          yq -i ".appVersion = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
+          yq -i ".appVersion = \"${TAG}\"" "${HELM_CHART_PATH}/Chart.yaml"
           echo "Updated Chart.yaml:"
           cat "${HELM_CHART_PATH}/Chart.yaml"
 
@@ -222,7 +223,7 @@ jobs:
           git checkout -b "${BRANCH}"
 
           yq -i ".version = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
-          yq -i ".appVersion = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
+          yq -i ".appVersion = \"${TAG}\"" "${HELM_CHART_PATH}/Chart.yaml"
 
           sed -i "s|--version [0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*|--version ${VERSION}|g" README.md
 
