@@ -1,28 +1,40 @@
+# -- Number of pod replicas
 replicaCount: 1
 
 image:
-  repository: dgops/shopping-list
+  # -- Image repository
+  repository: ghcr.io/steled/shopping-list
+  # -- Image pull policy
   pullPolicy: IfNotPresent
-  # Defaults to .Chart.AppVersion when empty
+  # -- Overrides the image tag whose default is the chart AppVersion
   tag: ""
 
-imagePullSecrets:
-  - name: dockerhub-pull-secret
+# -- Image pull secrets for private registries (e.g. `[{name: my-pull-secret}]`)
+imagePullSecrets: []
 
+# -- Partial name override for all resources
 nameOverride: ""
+# -- Full name override for all resources
 fullnameOverride: ""
 
 serviceAccount:
+  # -- Specifies whether a service account should be created
   create: true
+  # -- Annotations to add to the service account
   annotations: {}
+  # -- Name of the service account to use. If not set and create is true, a name is generated using the fullname template
   name: ""
 
+# -- Annotations to add to the pod
 podAnnotations: {}
+# -- Labels to add to the pod
 podLabels: {}
 
+# -- Pod-level security context
 podSecurityContext:
   fsGroup: 1001
 
+# -- Container-level security context
 securityContext:
   runAsNonRoot: true
   runAsUser: 1001
@@ -34,46 +46,57 @@ securityContext:
       - ALL
 
 service:
+  # -- Kubernetes service type
   type: ClusterIP
+  # -- Service port (should match the application listen port)
   port: 8080
 
 # ── Authentication ────────────────────────────────────────────────────────────
 auth:
-  # Login username
+  # -- Login username
   username: admin
-  # Login password (plain text; compared with bcrypt at runtime). Required.
+  # -- Login password (plain text; compared with bcrypt hash at runtime). Required when existingSecret is empty.
   password: ""
-  # HMAC secret for session cookie signing (min. 32 random bytes). Required.
+  # -- HMAC secret used to sign session cookies (minimum 32 random bytes). Required when existingSecret is empty.
   sessionSecret: ""
-  # Reference an existing Secret instead of creating one.
-  # Must contain keys: username, password, session-secret
+  # -- Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret`
   existingSecret: ""
 
 # ── Persistence (SQLite) ──────────────────────────────────────────────────────
 persistence:
+  # -- Enable persistent storage for the SQLite database. When disabled an emptyDir is used and data is lost on restart.
   enabled: true
+  # -- Storage class for the PVC. Leave empty to use the cluster default.
   storageClass: ""
+  # -- PVC access mode
   accessMode: ReadWriteOnce
+  # -- PVC storage size
   size: 1Gi
+  # -- Mount path for the data volume inside the container
   mountPath: /data
 
 # ── Networking ────────────────────────────────────────────────────────────────
-# type: "gateway"  → creates a Gateway API HTTPRoute (default)
-# type: "ingress"  → creates a classic Kubernetes Ingress
 networking:
+  # -- Networking type: `gateway` creates a Gateway API HTTPRoute, `ingress` creates a classic Kubernetes Ingress
   type: gateway
 
   gateway:
+    # -- Hostname exposed via the HTTPRoute
     hostname: shopping-list.tools.example.lan
+    # -- Gateway parentRefs (which Gateway and section to attach to)
     parentRefs:
       - name: api-gateway
         namespace: nginx-gateway
         sectionName: ""
 
   ingress:
+    # -- IngressClass name
     className: ""
+    # -- Additional annotations for the Ingress resource
     annotations: {}
+    # -- Hostname exposed via Ingress
     hostname: ""
+    # -- TLS configuration for the Ingress
     tls: []
     # tls:
     #   - secretName: shopping-list-tls
@@ -81,6 +104,7 @@ networking:
     #       - shopping.example.com
 
 # ── Resources ─────────────────────────────────────────────────────────────────
+# -- CPU/memory resource requests and limits for the application container
 resources:
   limits:
     cpu: 100m
@@ -90,6 +114,7 @@ resources:
     memory: 32Mi
 
 # ── Probes ────────────────────────────────────────────────────────────────────
+# -- Liveness probe configuration
 livenessProbe:
   httpGet:
     path: /healthz
@@ -98,6 +123,7 @@ livenessProbe:
   periodSeconds: 30
   failureThreshold: 3
 
+# -- Readiness probe configuration
 readinessProbe:
   httpGet:
     path: /healthz
@@ -106,6 +132,9 @@ readinessProbe:
   periodSeconds: 10
   failureThreshold: 3
 
+# -- Node selector for pod scheduling
 nodeSelector: {}
+# -- Tolerations for pod scheduling
 tolerations: []
+# -- Affinity rules for pod scheduling
 affinity: {}
