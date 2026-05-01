@@ -63,6 +63,7 @@ helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
 | networking.type | string | `"gateway"` | Networking type: `gateway` creates a Gateway API HTTPRoute, `ingress` creates a classic Kubernetes Ingress |
 | nodeSelector | object | `{}` | Node selector for pod scheduling |
 | persistence.accessMode | string | `"ReadWriteOnce"` | PVC access mode |
+| persistence.annotations | object | `{}` | Annotations to add to the PVC. |
 | persistence.enabled | bool | `true` | Enable persistent storage for the SQLite database. When disabled an emptyDir is used and data is lost on restart. |
 | persistence.mountPath | string | `"/data"` | Mount path for the data volume inside the container |
 | persistence.size | string | `"1Gi"` | PVC storage size |
