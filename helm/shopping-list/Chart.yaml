@@ -1,0 +1,17 @@
+apiVersion: v2
+name: shopping-list
+description: Lightweight shopping list web application
+type: application
+kubeVersion: ">=1.29.0-0"
+version: 0.1.0
+appVersion: "v0.1.0"
+keywords:
+  - shopping
+  - list
+  - grocery
+home: https://github.com/steled/shopping-list
+sources:
+  - https://github.com/steled/shopping-list
+maintainers:
+  - name: steled
+    email: 34886888+steled@users.noreply.github.com

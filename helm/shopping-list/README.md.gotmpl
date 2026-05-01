@@ -1,0 +1,33 @@
+{{ template "chart.header" . }}
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+## Install
+
+Before installing, generate the required secrets:
+
+```bash
+# bcrypt-hash for auth.password (requires htpasswd from apache2-utils / httpd-tools)
+htpasswd -bnBC 12 "" 'your-password' | tr -d ':\n'
+
+# 32-byte random secret for auth.sessionSecret
+openssl rand -base64 32
+```
+
+```bash
+helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
+  --set auth.password='<bcrypt-hash>' \
+  --set auth.sessionSecret='<random-base64>'
+```
+
+{{ template "chart.valuesSection" . }}
