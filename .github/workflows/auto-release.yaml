@@ -12,6 +12,11 @@ on:
       - 'go.mod'
       - 'go.sum'
       - 'docker/Dockerfile'
+      # Manually maintained helm files only — Chart.yaml and README.md are
+      # auto-updated by the release workflow and must not re-trigger a release.
+      - 'helm/shopping-list/templates/**'
+      - 'helm/shopping-list/values.yaml'
+      - 'helm/shopping-list/README.md.gotmpl'
 
 permissions:
   contents: write
@@ -47,7 +52,8 @@ jobs:
           fi
 
           COMMITS=$(git log "${GIT_RANGE}" --pretty=format:"%s" -- \
-            main.go internal/ templates/ static/ go.mod go.sum docker/Dockerfile helm/)
+            main.go internal/ templates/ static/ go.mod go.sum docker/Dockerfile \
+            helm/shopping-list/templates/ helm/shopping-list/values.yaml helm/shopping-list/README.md.gotmpl)
 
           if [ -z "$COMMITS" ]; then
             echo "No relevant commits since ${LATEST_TAG} — skipping release"

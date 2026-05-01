@@ -74,6 +74,8 @@ persistence:
   size: 1Gi
   # -- Mount path for the data volume inside the container
   mountPath: /data
+  # -- Annotations to add to the PVC.
+  annotations: {}
 
 # ── Networking ────────────────────────────────────────────────────────────────
 networking:
