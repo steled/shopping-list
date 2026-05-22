@@ -1,8 +1,10 @@
 package handlers
 
 import (
+	"database/sql"
 	"embed"
 	"encoding/json"
+	"errors"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -166,7 +168,11 @@ func (h *Handler) APICreateItem(w http.ResponseWriter, r *http.Request) {
 		item, err = h.db.CreateItem(strings.TrimSpace(req.Name), req.Quantity)
 	}
 	if err != nil {
-		jsonError(w, "failed to create item", http.StatusInternalServerError)
+		if errors.Is(err, sql.ErrNoRows) {
+			jsonError(w, "after_id not found", http.StatusNotFound)
+		} else {
+			jsonError(w, "failed to create item", http.StatusInternalServerError)
+		}
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
