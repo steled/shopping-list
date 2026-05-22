@@ -297,6 +297,96 @@ input[type="number"] { text-align: center; }
   display: none;
 }
 
+/* ── Insert zones ────────────────────────────────────────────────────────── */
+.insert-zone {
+  height: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+}
+
+.insert-zone::before {
+  content: '';
+  position: absolute;
+  left: 2.5rem;
+  right: 2.5rem;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.insert-zone:hover::before { opacity: 0.5; }
+
+.insert-btn {
+  position: relative;
+  z-index: 1;
+  opacity: 0;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.insert-zone:hover .insert-btn { opacity: 1; }
+
+.insert-zone.open {
+  height: auto;
+  cursor: default;
+  margin: 0.125rem 0;
+}
+
+.insert-zone.open::before { display: none; }
+.insert-zone.open .insert-btn { display: none; }
+
+.insert-form {
+  display: flex;
+  gap: 0.375rem;
+  width: 100%;
+  align-items: center;
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.625rem;
+}
+
+.insert-form .insert-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+}
+
+.insert-form .insert-qty {
+  flex: 0 0 3.75rem;
+  width: 3.75rem;
+  font-size: 0.875rem;
+  padding: 0.25rem 0.375rem;
+}
+
+.insert-form .btn-sm {
+  padding: 0.375rem 0.625rem;
+  font-size: 0.875rem;
+}
+
+/* Hide insert zones when filter is active */
+#items-list.filter-active .insert-zone {
+  display: none;
+}
+
 /* ── Login page ──────────────────────────────────────────────────────────── */
 .login-wrapper {
   display: flex;
