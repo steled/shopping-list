@@ -78,6 +78,7 @@ func (d *DB) GetItems() ([]Item, error) {
 
 // CreateItem inserts a new item and appends it at the end of the list.
 func (d *DB) CreateItem(name string, quantity int) (Item, error) {
+
 	var maxPos int
 	_ = d.db.QueryRow(`SELECT COALESCE(MAX(position), -1) FROM items`).Scan(&maxPos)
 
@@ -90,6 +91,44 @@ func (d *DB) CreateItem(name string, quantity int) (Item, error) {
 	}
 	id, _ := res.LastInsertId()
 	return Item{ID: id, Name: name, Quantity: quantity, Position: maxPos + 1}, nil
+}
+
+// CreateItemAt inserts a new item right after the item with afterID.
+// Pass afterID = 0 to insert before the first item in the list.
+func (d *DB) CreateItemAt(afterID int64, name string, quantity int) (Item, error) {
+	tx, err := d.db.Begin()
+	if err != nil {
+		return Item{}, err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	var insertPos int
+	if afterID == 0 {
+		// Insert before the first item: use its current position so we shift it down.
+		if err := tx.QueryRow(`SELECT COALESCE(MIN(position), 0) FROM items`).Scan(&insertPos); err != nil {
+			return Item{}, err
+		}
+	} else {
+		if err := tx.QueryRow(`SELECT position FROM items WHERE id=?`, afterID).Scan(&insertPos); err != nil {
+			return Item{}, fmt.Errorf("item not found: %w", err)
+		}
+		insertPos++ // insert after the given item
+	}
+
+	// Shift all items at or beyond insertPos down by one.
+	if _, err := tx.Exec(`UPDATE items SET position=position+1 WHERE position>=?`, insertPos); err != nil {
+		return Item{}, err
+	}
+
+	res, err := tx.Exec(`INSERT INTO items (name, quantity, position) VALUES (?, ?, ?)`, name, quantity, insertPos)
+	if err != nil {
+		return Item{}, err
+	}
+	id, _ := res.LastInsertId()
+	if err := tx.Commit(); err != nil {
+		return Item{}, err
+	}
+	return Item{ID: id, Name: name, Quantity: quantity, Position: insertPos}, nil
 }
 
 // UpdateItem updates name, quantity and checked state of an item.

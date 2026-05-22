@@ -149,6 +149,7 @@ func (h *Handler) APICreateItem(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Name     string `json:"name"`
 		Quantity int    `json:"quantity"`
+		AfterID  *int64 `json:"after_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
 		jsonError(w, "invalid request", http.StatusBadRequest)
@@ -157,7 +158,13 @@ func (h *Handler) APICreateItem(w http.ResponseWriter, r *http.Request) {
 	if req.Quantity < 1 {
 		req.Quantity = 1
 	}
-	item, err := h.db.CreateItem(strings.TrimSpace(req.Name), req.Quantity)
+	var item database.Item
+	var err error
+	if req.AfterID != nil {
+		item, err = h.db.CreateItemAt(*req.AfterID, strings.TrimSpace(req.Name), req.Quantity)
+	} else {
+		item, err = h.db.CreateItem(strings.TrimSpace(req.Name), req.Quantity)
+	}
 	if err != nil {
 		jsonError(w, "failed to create item", http.StatusInternalServerError)
 		return
