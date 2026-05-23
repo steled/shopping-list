@@ -6,12 +6,6 @@
 
   /* ── Helpers ─────────────────────────────────────────────────────────── */
 
-  function esc(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
-  }
-
   async function api(method, path, body) {
     var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
     if (body != null) opts.body = JSON.stringify(body);
@@ -41,12 +35,42 @@
     var li = document.createElement('li');
     li.className = 'item' + (item.checked ? ' checked' : '');
     li.dataset.id = item.id;
-    li.innerHTML =
-      '<span class="drag-handle" aria-hidden="true">⠿</span>' +
-      '<input type="checkbox" class="item-checkbox" aria-label="Gekauft"' + (item.checked ? ' checked' : '') + '>' +
-      '<span class="item-name">' + esc(item.name) + '</span>' +
-      '<input type="number" class="item-qty" value="' + item.quantity + '" min="1" max="999" aria-label="Anzahl">' +
-      '<button class="btn-icon btn-danger" title="Löschen" aria-label="Artikel löschen">🗑</button>';
+
+    var handle = document.createElement('span');
+    handle.className = 'drag-handle';
+    handle.setAttribute('aria-hidden', 'true');
+    handle.textContent = '⠿';
+
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'item-checkbox';
+    checkbox.setAttribute('aria-label', 'Gekauft');
+    checkbox.checked = Boolean(item.checked);
+
+    var nameSpan = document.createElement('span');
+    nameSpan.className = 'item-name';
+    nameSpan.textContent = item.name;
+
+    var qty = document.createElement('input');
+    qty.type = 'number';
+    qty.className = 'item-qty';
+    qty.value = item.quantity;
+    qty.min = '1';
+    qty.max = '999';
+    qty.setAttribute('aria-label', 'Anzahl');
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'btn-icon btn-danger';
+    delBtn.title = 'Löschen';
+    delBtn.setAttribute('aria-label', 'Artikel löschen');
+    delBtn.textContent = '🗑';
+
+    li.appendChild(handle);
+    li.appendChild(checkbox);
+    li.appendChild(nameSpan);
+    li.appendChild(qty);
+    li.appendChild(delBtn);
+
     return li;
   }
 
