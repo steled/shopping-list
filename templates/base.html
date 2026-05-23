@@ -12,7 +12,7 @@
     <h1>🛒 Einkaufsliste</h1>
     <div class="header-actions">
       <button id="theme-toggle" class="btn-icon" aria-label="Dark/Light Mode wechseln" title="Dark/Light Mode">🌙</button>
-      {{if .LoggedIn}}<a href="/logout" class="btn-link">Abmelden</a>{{end}}
+      {{if .LoggedIn}}<form method="POST" action="/logout" style="display:inline"><button type="submit" class="btn-link">Abmelden</button></form>{{end}}
     </div>
   </header>
   <main>
@@ -21,23 +21,7 @@
   <footer>
     <span>{{.Version}}</span>
   </footer>
-  <script>
-    (function () {
-      var html = document.getElementById('html-root');
-      var btn  = document.getElementById('theme-toggle');
-      var stored = localStorage.getItem('theme');
-      var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var theme = stored || (prefersDark ? 'dark' : 'light');
-      html.dataset.theme = theme;
-      if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-      if (btn) btn.addEventListener('click', function () {
-        var next = html.dataset.theme === 'dark' ? 'light' : 'dark';
-        html.dataset.theme = next;
-        localStorage.setItem('theme', next);
-        btn.textContent = next === 'dark' ? '☀️' : '🌙';
-      });
-    })();
-  </script>
+  <script src="/static/theme.js"></script>
 </body>
 </html>
 {{end}}

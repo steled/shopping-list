@@ -61,6 +61,9 @@ auth:
   sessionSecret: ""
   # -- Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret`
   existingSecret: ""
+  # -- Set to true when the app runs behind a TLS-terminating reverse proxy (Ingress/Gateway).
+  # Ensures the session cookie carries the Secure flag even though the pod receives plain HTTP.
+  secureCookies: true
 
 # ── Persistence (SQLite) ──────────────────────────────────────────────────────
 persistence:
@@ -94,8 +97,11 @@ networking:
   ingress:
     # -- IngressClass name
     className: ""
-    # -- Additional annotations for the Ingress resource
-    annotations: {}
+    # -- Additional annotations for the Ingress resource.
+    # The defaults enforce HTTPS-only access via the nginx ingress controller.
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     # -- Hostname exposed via Ingress
     hostname: ""
     # -- TLS configuration for the Ingress

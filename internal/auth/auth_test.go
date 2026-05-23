@@ -9,7 +9,7 @@ import (
 const testSecret = "test-hmac-secret-for-unit-tests-padding"
 
 func TestValidate(t *testing.T) {
-	a := New("admin", "secret123", testSecret)
+	a := New("admin", "secret123", testSecret, false)
 
 	if !a.Validate("admin", "secret123") {
 		t.Error("expected valid credentials to pass")
@@ -23,7 +23,7 @@ func TestValidate(t *testing.T) {
 }
 
 func TestSessionCookie(t *testing.T) {
-	a := New("admin", "password", testSecret)
+	a := New("admin", "password", testSecret, false)
 
 	// Set cookie
 	w := httptest.NewRecorder()
@@ -58,7 +58,7 @@ func TestSessionCookie(t *testing.T) {
 }
 
 func TestClearCookie(t *testing.T) {
-	a := New("admin", "password", testSecret)
+	a := New("admin", "password", testSecret, false)
 
 	w := httptest.NewRecorder()
 	a.ClearSessionCookie(w)
@@ -73,8 +73,8 @@ func TestClearCookie(t *testing.T) {
 }
 
 func TestDifferentSecretDoesNotAuthenticate(t *testing.T) {
-	a1 := New("admin", "password", "secret-one-padded-long-enough-!!!")
-	a2 := New("admin", "password", "secret-two-padded-long-enough-!!!")
+	a1 := New("admin", "password", "secret-one-padded-long-enough-!!!", false)
+	a2 := New("admin", "password", "secret-two-padded-long-enough-!!!", false)
 
 	w := httptest.NewRecorder()
 	r := httptest.NewRequest(http.MethodGet, "/", nil)

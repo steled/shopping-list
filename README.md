@@ -24,11 +24,12 @@ A lightweight, self-hosted shopping list web application built with Go and SQLit
 
 - **Single-user authentication** — bcrypt password hashing, HMAC-signed session cookies
 - **Shopping list management** — add, edit, delete and check off items with quantities
-- **Drag & drop reordering** — reorder items via SortableJS
+- **Drag & drop reordering** — reorder items via SortableJS (bundled, no CDN)
 - **Filter view** — hide already-checked items with one click
 - **Dark mode** — automatic via `prefers-color-scheme`, toggle persisted in `localStorage`
 - **Zero dependencies at runtime** — single static binary with embedded templates and assets
 - **SQLite persistence** — no external database required
+- **Security hardened** — strict CSP (`default-src 'self'`), `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, enforced `Secure` cookie flag behind reverse proxies
 
 ## Tech Stack
 
@@ -36,7 +37,7 @@ A lightweight, self-hosted shopping list web application built with Go and SQLit
 |------------|-------------------------------------------|
 | Backend    | Go 1.22, `net/http` stdlib                |
 | Database   | SQLite via `modernc.org/sqlite` (pure Go, CGO-free) |
-| Frontend   | Vanilla JS + CSS, [SortableJS](https://sortablejs.github.io/Sortable/) |
+| Frontend   | Vanilla JS + CSS, [SortableJS](https://sortablejs.github.io/Sortable/) (bundled in `static/`) |
 | Container  | Multi-stage Docker build (~15 MB image)   |
 | Deployment | Kubernetes Helm chart (Gateway API or Ingress) |
 
@@ -66,13 +67,14 @@ go test ./...
 
 ## Environment Variables
 
-| Variable           | Default          | Description                                              |
-|--------------------|------------------|----------------------------------------------------------|
-| `APP_USERNAME`     | `admin`          | Login username                                           |
-| `APP_PASSWORD`     | *(required)*     | Login password (plain text; hashed with bcrypt at startup) |
-| `APP_SESSION_SECRET` | *(required)*   | HMAC secret for session cookies (min. 32 random bytes)   |
-| `DATABASE_PATH`    | `/data/shopping.db` | Path to the SQLite database file                      |
-| `APP_ADDR`         | `:8080`          | HTTP listen address                                      |
+| Variable              | Default             | Description                                              |
+|-----------------------|---------------------|----------------------------------------------------------|
+| `APP_USERNAME`        | `admin`             | Login username                                           |
+| `APP_PASSWORD`        | *(required)*        | Login password (plain text; hashed with bcrypt at startup) |
+| `APP_SESSION_SECRET`  | *(required)*        | HMAC secret for session cookies (**min. 32 characters** — use `openssl rand -hex 32`) |
+| `APP_SECURE_COOKIES`  | `false`             | Set to `true` when running behind a TLS-terminating reverse proxy (Ingress/Gateway) to enforce the `Secure` flag on session cookies. Defaults to `true` in the Helm chart. |
+| `DATABASE_PATH`       | `/data/shopping.db` | Path to the SQLite database file                        |
+| `APP_ADDR`            | `:8080`             | HTTP listen address                                      |
 
 ## Docker
 
@@ -152,21 +154,22 @@ All API endpoints require an authenticated session (cookie set at login).
 | Method   | Path                    | Description              |
 |----------|-------------------------|--------------------------|
 | `GET`    | `/api/items`            | List all items           |
-| `POST`   | `/api/items`            | Create item `{name, quantity}` |
+| `POST`   | `/api/items`            | Create item `{name, quantity[, after_id]}` |
 | `PUT`    | `/api/items/{id}`       | Update item `{name, quantity, checked}` |
 | `DELETE` | `/api/items/{id}`       | Delete item              |
-| `POST`   | `/api/items/reorder`    | Reorder items `{ids: []}` |
+| `PATCH`  | `/api/items/reorder`    | Reorder items `{ids: []}` |
 
 ## CI/CD
 
-| Workflow           | Trigger                        | Description                                      |
-|--------------------|--------------------------------|--------------------------------------------------|
-| `test.yaml`        | Push / PR                      | golangci-lint, hadolint, helm-lint, go test      |
-| `auto-release.yaml`| Push to `main`                 | Conventional commits → semantic version tag      |
-| `release.yaml`     | Tag `v*` / manual              | Helm package + GitHub Release + version-refs PR  |
-| `commitlint.yaml`  | PR                             | Enforce Conventional Commits message format      |
-| `renovate.yaml`    | Schedule                       | Automated dependency updates                     |
-| `renovate-go-tidy.yml` | Renovate PR touching `go.mod` | Run `go mod tidy` automatically              |
+| Workflow                | Trigger                           | Description                                      |
+|-------------------------|-----------------------------------|--------------------------------------------------|
+| `test.yaml`             | Push / PR                         | golangci-lint, hadolint, helm-lint, go test      |
+| `auto-release.yaml`     | Push to `main`                    | Conventional commits → semantic version tag      |
+| `release.yaml`          | Tag `v*` / manual                 | Helm package + GitHub Release + version-refs PR  |
+| `commitlint.yaml`       | PR                                | Enforce Conventional Commits message format      |
+| `renovate.yaml`         | Schedule                          | Automated dependency updates (Go, Docker, Actions, SortableJS) |
+| `renovate-go-tidy.yml`  | Renovate PR touching `go.mod`     | Run `go mod tidy` automatically                  |
+| `update-sortable.yml`   | Push to non-main branch touching `static/sortable.version` | Download matching `Sortable.min.js` and commit to the branch |
 
 ## Versioning
 

@@ -55,6 +55,8 @@ spec:
                 secretKeyRef:
                   name: {{ include "shopping-list.secretName" . }}
                   key: session-secret
+            - name: APP_SECURE_COOKIES
+              value: {{ .Values.auth.secureCookies | quote }}
             - name: DATABASE_PATH
               value: "{{ .Values.persistence.mountPath }}/shopping.db"
           {{- with .Values.livenessProbe }}
