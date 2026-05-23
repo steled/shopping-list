@@ -24,7 +24,27 @@ Konkrete Auslöser (nicht abschließend):
 - Neue Umgebungsvariablen mit sicherheitsrelevantem Inhalt
 - Neue externe Abhängigkeiten (Go-Module, JS-Bibliotheken)
 
-### 3. Dokumentation aktualisieren
+### 3. Design-Review (bei Frontend-Änderungen)
+
+Nach jeder Änderung an CSS, Templates oder JavaScript ist folgende Checkliste zu prüfen:
+
+- [ ] **Touch-Targets**: Alle Buttons/Links ≥ 2.75rem (44px) Mindestgröße auf Mobile?
+- [ ] **Focus-Styles**: `focus-visible`-Indikator auf allen interaktiven Elementen vorhanden?
+- [ ] **Kontrast**: Text gegen Hintergrund mind. WCAG AA (4.5:1) — auch im Dark Mode?
+- [ ] **Keine Inline-Styles**: Ausschließlich CSS-Klassen, kein `style="…"` in Templates?
+- [ ] **Schriftgrößen**: Mindestens 0.875rem (14px) für UI-Text?
+- [ ] **Icons**: SVG bevorzugen gegenüber Emojis für interaktive Elemente?
+- [ ] **Dark Mode**: Neue Komponenten in beiden Themes geprüft?
+- [ ] **Reduzierte Bewegung**: Animationen respektieren `prefers-reduced-motion`?
+- [ ] **Neue CSS-Utilities**: Als Klassen in `style.css` angelegt, nicht als One-off-Inline-Styles?
+
+Konkrete Auslöser (nicht abschließend):
+- Neue oder geänderte CSS-Klassen/Variablen
+- Neue interaktive Elemente (Buttons, Inputs, Links)
+- Änderungen am Layout oder der Typografie
+- Neue Template-Komponenten
+
+### 4. Dokumentation aktualisieren
 
 `README.md` ist zu aktualisieren, wenn sich folgendes ändert:
 
