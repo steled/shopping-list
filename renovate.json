@@ -5,6 +5,16 @@
     "github>steled/renovate-config"
   ],
   "commitMessageAction": "update",
+  "customManagers": [
+    {
+      "description": "Track SortableJS version in static/sortable.version",
+      "customType": "regex",
+      "fileMatch": ["^static/sortable\\.version$"],
+      "matchStrings": ["^(?<currentValue>[\\d\\.]+)"],
+      "depNameTemplate": "sortablejs",
+      "datasourceTemplate": "npm"
+    }
+  ],
   "packageRules": [
     {
       "description": "Group Go base image updates",
@@ -41,6 +51,16 @@
       "matchPackageNames": [
         "/^ghcr\\.io\\/steled//"
       ]
+    },
+    {
+      "description": "SortableJS bundled file updates",
+      "matchManagers": ["custom.regex"],
+      "matchPackageNames": ["sortablejs"],
+      "groupName": "SortableJS",
+      "automerge": false,
+      "commitMessagePrefix": "chore(deps):",
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "deps"
     }
   ],
   "gomod": {

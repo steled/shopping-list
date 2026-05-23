@@ -25,6 +25,11 @@ func main() {
 	username := getenv("APP_USERNAME", "admin")
 	password := mustenv("APP_PASSWORD")
 	sessionSecret := mustenv("APP_SESSION_SECRET")
+	if len(sessionSecret) < 32 {
+		slog.Error("APP_SESSION_SECRET must be at least 32 characters (use: openssl rand -hex 32)")
+		os.Exit(1)
+	}
+	secureCookies := os.Getenv("APP_SECURE_COOKIES") == "true"
 	dbPath := getenv("DATABASE_PATH", "/data/shopping.db")
 	addr := getenv("APP_ADDR", ":8080")
 
@@ -35,7 +40,7 @@ func main() {
 	}
 	defer func() { _ = db.Close() }()
 
-	a := auth.New(username, password, sessionSecret)
+	a := auth.New(username, password, sessionSecret, secureCookies)
 
 	staticSubFS, err := fs.Sub(embeddedFS, "static")
 	if err != nil {
@@ -54,7 +59,7 @@ func main() {
 	mux.HandleFunc("GET /", h.Index)
 	mux.HandleFunc("GET /login", h.LoginGET)
 	mux.HandleFunc("POST /login", h.LoginPOST)
-	mux.HandleFunc("GET /logout", h.Logout)
+	mux.HandleFunc("POST /logout", h.Logout)
 	mux.HandleFunc("GET /list", h.RequireAuth(h.List))
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServerFS(staticSubFS)))
 	mux.HandleFunc("GET /api/items", h.RequireAuth(h.APIGetItems))
@@ -65,7 +70,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:         addr,
-		Handler:      mux,
+		Handler:      securityHeaders(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -88,6 +93,21 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(ctx)
+}
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("Content-Security-Policy",
+			"default-src 'self'; "+
+				"script-src 'self'; "+
+				"style-src 'self'; "+
+				"img-src 'self' data:; "+
+				"font-src 'self';")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func getenv(key, fallback string) string {

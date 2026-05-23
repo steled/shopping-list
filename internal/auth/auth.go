@@ -19,9 +19,10 @@ const (
 
 // Auth handles password validation and session cookies.
 type Auth struct {
-	username     string
-	passwordHash []byte
-	secret       []byte
+	username      string
+	passwordHash  []byte
+	secret        []byte
+	secureCookies bool
 }
 
 type sessionPayload struct {
@@ -30,15 +31,17 @@ type sessionPayload struct {
 
 // New creates a new Auth instance. The password is hashed with bcrypt at
 // startup so that login attempts always perform a constant-time compare.
-func New(username, password, secret string) *Auth {
+// secureCookies should be true when the app runs behind a TLS-terminating proxy.
+func New(username, password, secret string, secureCookies bool) *Auth {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		panic("auth: bcrypt hash failed: " + err.Error())
 	}
 	return &Auth{
-		username:     username,
-		passwordHash: hash,
-		secret:       []byte(secret),
+		username:      username,
+		passwordHash:  hash,
+		secret:        []byte(secret),
+		secureCookies: secureCookies,
 	}
 }
 
@@ -66,7 +69,7 @@ func (a *Auth) SetSessionCookie(w http.ResponseWriter, r *http.Request) {
 		MaxAge:   int(sessionDuration.Seconds()),
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
-		Secure:   r.TLS != nil,
+		Secure:   a.secureCookies || r.TLS != nil,
 	})
 }
 
@@ -79,6 +82,7 @@ func (a *Auth) ClearSessionCookie(w http.ResponseWriter) {
 		MaxAge:   -1,
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
+		Secure:   a.secureCookies,
 	})
 }
 

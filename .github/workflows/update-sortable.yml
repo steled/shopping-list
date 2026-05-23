@@ -1,0 +1,38 @@
+name: Download SortableJS
+
+on:
+  push:
+    branches-ignore:
+      - main
+    paths:
+      - static/sortable.version
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Read version
+        id: ver
+        run: echo "version=$(tr -d '[:space:]' < static/sortable.version)" >> "$GITHUB_OUTPUT"
+
+      - name: Download Sortable.min.js
+        run: |
+          curl -fsSL \
+            "https://cdn.jsdelivr.net/npm/sortablejs@${{ steps.ver.outputs.version }}/Sortable.min.js" \
+            -o static/sortable.min.js
+
+      - name: Commit
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add static/sortable.min.js
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -m "chore(deps): download SortableJS ${{ steps.ver.outputs.version }} [skip ci]"
+          git push
