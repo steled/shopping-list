@@ -27,6 +27,7 @@ A lightweight, self-hosted shopping list web application built with Go and SQLit
 - **Drag & drop reordering** — reorder items via SortableJS (bundled, no CDN)
 - **Filter view** — hide already-checked items with one click
 - **Dark mode** — automatic via `prefers-color-scheme`, toggle persisted in `localStorage`
+- **Accessible UI** — WCAG-compliant touch targets (≥ 44 px), visible `focus-visible` indicators on all interactive elements, sufficient contrast ratios in both themes
 - **Zero dependencies at runtime** — single static binary with embedded templates and assets
 - **SQLite persistence** — no external database required
 - **Security hardened** — strict CSP (`default-src 'self'`), `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, enforced `Secure` cookie flag behind reverse proxies
