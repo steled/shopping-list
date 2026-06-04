@@ -9,7 +9,9 @@
     {
       "description": "Track SortableJS version in static/sortable.version",
       "customType": "regex",
-      "fileMatch": ["^static/sortable\\.version$"],
+      "managerFilePatterns": [
+        "/^static/sortable\\.version$/"
+      ],
       "matchStrings": ["^(?<currentValue>[\\d\\.]+)"],
       "depNameTemplate": "sortablejs",
       "datasourceTemplate": "npm"
