@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o /shopping-list .
 
 # ── Final stage ───────────────────────────────────────────────────────────────
-FROM alpine:3.23
+FROM alpine:3.24
 
 ARG APP_VERSION=dev
 
