@@ -24,7 +24,7 @@ jobs:
 
     steps:
       - name: Checkout PR branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ github.head_ref }}
           # GITHUB_TOKEN is sufficient here because we do not want to trigger additional workflow runs
