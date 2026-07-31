@@ -34,11 +34,11 @@ RUN mkdir -p /data && chown appuser:appgroup /data
 
 COPY --from=builder /shopping-list /usr/local/bin/shopping-list
 
-USER appuser
+USER 1001:1001
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:8080/healthz || exit 1
+  CMD ["sh", "-c", "wget -qO- http://localhost:8080/healthz || exit 1"]
 
 CMD ["/usr/local/bin/shopping-list"]
