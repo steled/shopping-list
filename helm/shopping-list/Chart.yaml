@@ -3,8 +3,8 @@ name: shopping-list
 description: Lightweight shopping list web application
 type: application
 kubeVersion: ">=1.29.0-0"
-version: 0.4.12
-appVersion: "v0.4.12"
+version: 0.4.13
+appVersion: "v0.4.13"
 keywords:
   - shopping
   - list
