@@ -76,7 +76,7 @@ jobs:
         uses: azure/setup-helm@v5
 
       - name: Install yq
-        uses: mikefarah/yq@v4.53.3
+        uses: mikefarah/yq@v4.53.5
 
       - name: Update Chart.yaml versions
         run: |
