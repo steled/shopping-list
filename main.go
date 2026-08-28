@@ -67,6 +67,11 @@ func main() {
 	mux.HandleFunc("PATCH /api/items/reorder", h.RequireAuth(h.APIReorderItems))
 	mux.HandleFunc("PUT /api/items/{id}", h.RequireAuth(h.APIUpdateItem))
 	mux.HandleFunc("DELETE /api/items/{id}", h.RequireAuth(h.APIDeleteItem))
+	mux.HandleFunc("GET /api/categories", h.RequireAuth(h.APIGetCategories))
+	mux.HandleFunc("POST /api/categories", h.RequireAuth(h.APICreateCategory))
+	mux.HandleFunc("PATCH /api/categories/reorder", h.RequireAuth(h.APIReorderCategories))
+	mux.HandleFunc("PUT /api/categories/{id}", h.RequireAuth(h.APIRenameCategory))
+	mux.HandleFunc("DELETE /api/categories/{id}", h.RequireAuth(h.APIDeleteCategory))
 
 	srv := &http.Server{
 		Addr:         addr,

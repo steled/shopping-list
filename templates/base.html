@@ -13,7 +13,7 @@
     <h1>🛒 Einkaufsliste</h1>
     <div class="header-actions">
       <button id="theme-toggle" class="btn-icon" aria-label="Dark/Light Mode wechseln" title="Dark/Light Mode">🌙</button>
-      {{if .LoggedIn}}<form method="POST" action="/logout" style="display:inline"><button type="submit" class="btn-link">Abmelden</button></form>{{end}}
+      {{if .LoggedIn}}<form method="POST" action="/logout" class="logout-form"><button type="submit" class="btn-link">Abmelden</button></form>{{end}}
     </div>
   </header>
   <main>

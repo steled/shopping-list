@@ -24,7 +24,8 @@ A lightweight, self-hosted shopping list web application built with Go and SQLit
 
 - **Single-user authentication** — bcrypt password hashing, HMAC-signed session cookies
 - **Shopping list management** — add, edit, delete and check off items with quantities
-- **Drag & drop reordering** — reorder items via SortableJS (bundled, no CDN)
+- **Categories ("Abteilungen")** — group items into user-defined departments (e.g. supermarket sections), drag items between categories or reorder whole categories; uncategorized items land in an auto-hiding "Ohne Kategorie" section
+- **Drag & drop reordering** — reorder items and categories via SortableJS (bundled, no CDN)
 - **Filter view** — hide already-checked items with one click
 - **Dark mode** — automatic via `prefers-color-scheme`, toggle persisted in `localStorage`
 - **Accessible UI** — WCAG-compliant touch targets (≥ 44 px), visible `focus-visible` indicators on all interactive elements, sufficient contrast ratios in both themes
@@ -155,10 +156,15 @@ All API endpoints require an authenticated session (cookie set at login).
 | Method   | Path                    | Description              |
 |----------|-------------------------|--------------------------|
 | `GET`    | `/api/items`            | List all items           |
-| `POST`   | `/api/items`            | Create item `{name, quantity[, after_id]}` |
-| `PUT`    | `/api/items/{id}`       | Update item `{name, quantity, checked}` |
+| `POST`   | `/api/items`            | Create item `{name, quantity[, after_id, category_id]}` |
+| `PUT`    | `/api/items/{id}`       | Update item `{name, quantity, checked, category_id}` |
 | `DELETE` | `/api/items/{id}`       | Delete item              |
-| `PATCH`  | `/api/items/reorder`    | Reorder items `{ids: []}` |
+| `PATCH`  | `/api/items/reorder`    | Reorder items within a category `{category_id, ids: []}` — also used to move an item into `category_id` |
+| `GET`    | `/api/categories`       | List all categories      |
+| `POST`   | `/api/categories`       | Create category `{name}` |
+| `PUT`    | `/api/categories/{id}`  | Rename category `{name}` |
+| `DELETE` | `/api/categories/{id}`  | Delete category (items become uncategorized, not deleted) |
+| `PATCH`  | `/api/categories/reorder` | Reorder categories `{ids: []}` |
 
 ## CI/CD
 
