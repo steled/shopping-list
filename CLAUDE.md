@@ -44,7 +44,17 @@ Konkrete Auslöser (nicht abschließend):
 - Änderungen am Layout oder der Typografie
 - Neue Template-Komponenten
 
-### 4. Dokumentation aktualisieren
+### 4. Visuelle/interaktive Tests (bei Frontend-Änderungen)
+
+Nach jeder Änderung an Templates, CSS oder JavaScript sind die neuen bzw. geänderten Interaktionen tatsächlich auszuführen — nicht nur Code zu lesen, `go test` laufen zu lassen oder API-Endpunkte per `curl` zu prüfen. Die Aufgabe gilt erst als abgeschlossen, wenn diese Szenarien tatsächlich durchlaufen wurden, nicht schon nach reiner Code-Fertigstellung.
+
+- **Bevorzugt: automatisiert im Browser** (z. B. über ein Browser-Automatisierungswerkzeug wie `chromium-cli`/Playwright, falls in der Umgebung verfügbar), inklusive Screenshot und Prüfung der Browser-Konsole auf Fehler.
+- **Steht keine Automatisierung zur Verfügung** (wie aktuell in dieser Dev-Umgebung — kein Node/Playwright/Chromium installiert): Dev-Server starten (`APP_PASSWORD=... APP_SESSION_SECRET=$(openssl rand -hex 32) go run .`) und dem Nutzer eine **konkrete, auf die gerade hinzugefügte/geänderte Funktion zugeschnittene** Liste von Testszenarien vorgeben — Schritt für Schritt, mit erwartetem Ergebnis je Punkt. Keine generische/wiederverwendete Standard-Checkliste — die Szenarien müssen jedes Mal neu aus dem tatsächlichen Diff abgeleitet werden (z. B. bei einem Drag&Drop-Feature: konkret das Ziehen, Loslassen, den Randfall beschreiben, nicht nur "UI testen").
+- Rückmeldungen aus diesen Tests (Bugs, unerwartetes Verhalten) sind vor Abschluss der Aufgabe zu beheben, nicht nur zu notieren.
+
+Konkrete Auslöser: identisch zu Abschnitt 3 (neue/geänderte CSS-Klassen, neue interaktive Elemente, Layout-/Typografie-Änderungen, neue Template-Komponenten).
+
+### 5. Dokumentation aktualisieren
 
 `README.md` ist zu aktualisieren, wenn sich folgendes ändert:
 
