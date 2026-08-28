@@ -84,7 +84,6 @@
     input.value = span.textContent;
     span.replaceWith(input);
     input.focus();
-    input.select();
 
     function commit() {
       var val = input.value.trim() || span.textContent;
