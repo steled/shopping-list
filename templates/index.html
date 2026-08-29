@@ -1,3 +1,14 @@
+{{define "itemRow"}}
+<li class="item{{if .Checked}} checked{{end}}" data-id="{{.ID}}">
+  <span class="drag-handle" aria-hidden="true">⠿</span>
+  <input type="checkbox" class="item-checkbox" aria-label="Gekauft"{{if .Checked}} checked{{end}}>
+  <span class="item-name">{{.Name}}</span>
+  <input type="number" class="item-qty" value="{{.Quantity}}" min="1" max="999" aria-label="Anzahl">
+  {{if .InCategory}}<button class="btn-icon uncategorize-btn" title="Aus Abteilung entfernen" aria-label="Artikel aus Abteilung entfernen">↩</button>{{end}}
+  <button class="btn-icon btn-danger" title="Löschen" aria-label="Artikel löschen">🗑</button>
+</li>
+{{end}}
+
 {{define "content"}}
 <form id="add-form" class="add-form">
   <input type="text" id="new-name" placeholder="Neuer Artikel…" required autocomplete="off" aria-label="Artikelname">
@@ -9,21 +20,42 @@
   <button id="filter-btn" class="btn btn-filter" aria-pressed="false" title="Nur markierte Artikel anzeigen">
     <span class="filter-icon">☑</span> Nur zu kaufende
   </button>
+  <button id="add-category-btn" class="btn btn-filter" title="Neue Abteilung anlegen">
+    ＋ Abteilung
+  </button>
 </div>
 
-<ul id="items-list">
-  {{range .Items}}
-  <li class="item{{if .Checked}} checked{{end}}" data-id="{{.ID}}">
-    <span class="drag-handle" aria-hidden="true">⠿</span>
-    <input type="checkbox" class="item-checkbox" aria-label="Gekauft"{{if .Checked}} checked{{end}}>
-    <span class="item-name">{{.Name}}</span>
-    <input type="number" class="item-qty" value="{{.Quantity}}" min="1" max="999" aria-label="Anzahl">
-    <button class="btn-icon btn-danger" title="Löschen" aria-label="Artikel löschen">🗑</button>
-  </li>
-  {{else}}
-  <li id="empty-hint" class="empty-hint">Keine Artikel – füge deinen ersten hinzu!</li>
+{{if and (eq (len .Categories) 0) (eq (len .Uncategorized) 0)}}
+<div id="empty-hint" class="empty-hint">Keine Artikel – füge deinen ersten hinzu!</div>
+{{end}}
+
+<div id="categories-container">
+  {{range .Categories}}
+  <section class="category-block cat-color-{{.ColorIdx}}" data-category-id="{{.ID}}">
+    <div class="category-header">
+      <span class="group-handle" aria-hidden="true">⠿</span>
+      <button type="button" class="category-toggle" aria-expanded="true" aria-label="Ein-/Ausklappen">▾</button>
+      <span class="category-name">{{.Name}}</span>
+      <span class="category-count">{{len .Items}}</span>
+      <button type="button" class="btn-icon btn-danger category-delete" title="Abteilung löschen" aria-label="Abteilung löschen">🗑</button>
+    </div>
+    <ul class="items-list" data-category-id="{{.ID}}">
+      {{range .Items}}{{template "itemRow" .}}{{end}}
+    </ul>
+    <button type="button" class="category-add-btn">＋ Artikel</button>
+  </section>
   {{end}}
-</ul>
+
+  <section class="category-block uncategorized-block"{{if not .Uncategorized}} hidden{{end}}>
+    <div class="category-header category-header--static">
+      <span class="category-name">Ohne Kategorie</span>
+      <span class="category-count">{{len .Uncategorized}}</span>
+    </div>
+    <ul class="items-list" data-category-id="">
+      {{range .Uncategorized}}{{template "itemRow" .}}{{end}}
+    </ul>
+  </section>
+</div>
 
 <script src="/static/sortable.min.js"></script>
 <script src="/static/app.js"></script>

@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"database/sql"
-	"embed"
 	"encoding/json"
 	"errors"
 	"html/template"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
@@ -19,9 +19,10 @@ import (
 )
 
 const (
-	maxBodyBytes  = 1 << 20 // 1 MB
-	maxNameLength = 500
-	maxQuantity   = 999
+	maxBodyBytes          = 1 << 20 // 1 MB
+	maxNameLength         = 500
+	maxQuantity           = 999
+	maxCategoryNameLength = 100
 )
 
 // loginLimiter tracks failed login attempts per IP to prevent brute-force attacks.
@@ -98,8 +99,8 @@ type Handler struct {
 	limiter *loginLimiter
 }
 
-// New creates a Handler, parsing templates from the provided embed.FS.
-func New(db *database.DB, a *auth.Auth, tmplFS embed.FS, version string) (*Handler, error) {
+// New creates a Handler, parsing templates from the provided filesystem.
+func New(db *database.DB, a *auth.Auth, tmplFS fs.FS, version string) (*Handler, error) {
 	h := &Handler{
 		db:      db,
 		auth:    a,
@@ -209,18 +210,66 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/login", http.StatusSeeOther)
 }
 
+// itemView is an Item shaped for template rendering, nested under its
+// category. InCategory controls whether the row's "remove from category"
+// button is rendered.
+type itemView struct {
+	ID         int64
+	Name       string
+	Quantity   int
+	Checked    bool
+	InCategory bool
+}
+
+// categoryView is a Category with its items already grouped and ordered,
+// shaped for template rendering.
+type categoryView struct {
+	ID       int64
+	Name     string
+	ColorIdx int
+	Items    []itemView
+}
+
 // List renders the shopping list page.
 func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+	categories, err := h.db.GetCategories()
+	if err != nil {
+		slog.Error("get categories", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 	items, err := h.db.GetItems()
 	if err != nil {
 		slog.Error("get items", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
+
+	byCategory := make(map[int64][]itemView, len(categories))
+	var uncategorized []itemView
+	for _, it := range items {
+		if it.CategoryID == nil {
+			uncategorized = append(uncategorized, itemView{
+				ID: it.ID, Name: it.Name, Quantity: it.Quantity, Checked: it.Checked, InCategory: false,
+			})
+		} else {
+			byCategory[*it.CategoryID] = append(byCategory[*it.CategoryID], itemView{
+				ID: it.ID, Name: it.Name, Quantity: it.Quantity, Checked: it.Checked, InCategory: true,
+			})
+		}
+	}
+	categoryViews := make([]categoryView, 0, len(categories))
+	for _, c := range categories {
+		categoryViews = append(categoryViews, categoryView{
+			ID: c.ID, Name: c.Name, ColorIdx: c.ColorIdx, Items: byCategory[c.ID],
+		})
+	}
+
 	h.render(w, "index", map[string]any{
-		"Items":    items,
-		"Version":  h.version,
-		"LoggedIn": true,
+		"Categories":    categoryViews,
+		"Uncategorized": uncategorized,
+		"Version":       h.version,
+		"LoggedIn":      true,
 	})
 }
 
@@ -241,9 +290,10 @@ func (h *Handler) APIGetItems(w http.ResponseWriter, _ *http.Request) {
 func (h *Handler) APICreateItem(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	var req struct {
-		Name     string `json:"name"`
-		Quantity int    `json:"quantity"`
-		AfterID  *int64 `json:"after_id"`
+		Name       string `json:"name"`
+		Quantity   int    `json:"quantity"`
+		AfterID    *int64 `json:"after_id"`
+		CategoryID *int64 `json:"category_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
 		jsonError(w, "invalid request", http.StatusBadRequest)
@@ -264,14 +314,17 @@ func (h *Handler) APICreateItem(w http.ResponseWriter, r *http.Request) {
 	var item database.Item
 	var err error
 	if req.AfterID != nil {
-		item, err = h.db.CreateItemAt(*req.AfterID, name, req.Quantity)
+		item, err = h.db.CreateItemAt(req.CategoryID, *req.AfterID, name, req.Quantity)
 	} else {
-		item, err = h.db.CreateItem(name, req.Quantity)
+		item, err = h.db.CreateItem(name, req.Quantity, req.CategoryID)
 	}
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
 			jsonError(w, "after_id not found", http.StatusNotFound)
-		} else {
+		case errors.Is(err, database.ErrCategoryNotFound):
+			jsonError(w, "category not found", http.StatusBadRequest)
+		default:
 			jsonError(w, "failed to create item", http.StatusInternalServerError)
 		}
 		return
@@ -290,9 +343,10 @@ func (h *Handler) APIUpdateItem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req struct {
-		Name     string `json:"name"`
-		Quantity int    `json:"quantity"`
-		Checked  bool   `json:"checked"`
+		Name       string `json:"name"`
+		Quantity   int    `json:"quantity"`
+		Checked    bool   `json:"checked"`
+		CategoryID *int64 `json:"category_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
 		jsonError(w, "invalid request", http.StatusBadRequest)
@@ -310,8 +364,12 @@ func (h *Handler) APIUpdateItem(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "quantity out of range", http.StatusBadRequest)
 		return
 	}
-	if err := h.db.UpdateItem(id, name, req.Quantity, req.Checked); err != nil {
-		jsonError(w, "failed to update item", http.StatusInternalServerError)
+	if err := h.db.UpdateItem(id, name, req.Quantity, req.Checked, req.CategoryID); err != nil {
+		if errors.Is(err, database.ErrCategoryNotFound) {
+			jsonError(w, "category not found", http.StatusBadRequest)
+		} else {
+			jsonError(w, "failed to update item", http.StatusInternalServerError)
+		}
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -331,8 +389,112 @@ func (h *Handler) APIDeleteItem(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// APIReorderItems updates item positions based on the provided id order.
+// APIReorderItems updates item positions (and, when moving between
+// categories, category assignment) based on the provided id order. ids must
+// be the full, final ordered list of items in category_id.
 func (h *Handler) APIReorderItems(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	var req struct {
+		CategoryID *int64  `json:"category_id"`
+		IDs        []int64 `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || len(req.IDs) == 0 {
+		jsonError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	if err := h.db.ReorderItems(req.CategoryID, req.IDs); err != nil {
+		if errors.Is(err, database.ErrCategoryNotFound) {
+			jsonError(w, "category not found", http.StatusBadRequest)
+		} else {
+			jsonError(w, "failed to reorder items", http.StatusInternalServerError)
+		}
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// APIGetCategories returns all categories as JSON.
+func (h *Handler) APIGetCategories(w http.ResponseWriter, _ *http.Request) {
+	categories, err := h.db.GetCategories()
+	if err != nil {
+		jsonError(w, "failed to fetch categories", http.StatusInternalServerError)
+		return
+	}
+	if categories == nil {
+		categories = []database.Category{}
+	}
+	jsonOK(w, categories)
+}
+
+// APICreateCategory creates a new category.
+func (h *Handler) APICreateCategory(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
+		jsonError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(req.Name)
+	if len(name) > maxCategoryNameLength {
+		jsonError(w, "name too long", http.StatusBadRequest)
+		return
+	}
+	category, err := h.db.CreateCategory(name)
+	if err != nil {
+		jsonError(w, "failed to create category", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(category)
+}
+
+// APIRenameCategory updates a category's name.
+func (h *Handler) APIRenameCategory(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonError(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	var req struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Name) == "" {
+		jsonError(w, "invalid request", http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(req.Name)
+	if len(name) > maxCategoryNameLength {
+		jsonError(w, "name too long", http.StatusBadRequest)
+		return
+	}
+	if err := h.db.RenameCategory(id, name); err != nil {
+		jsonError(w, "failed to rename category", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// APIDeleteCategory removes a category. Its items are not deleted — they
+// become uncategorized.
+func (h *Handler) APIDeleteCategory(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil {
+		jsonError(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	if err := h.db.DeleteCategory(id); err != nil {
+		jsonError(w, "failed to delete category", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// APIReorderCategories updates category positions based on the provided id order.
+func (h *Handler) APIReorderCategories(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
 	var req struct {
 		IDs []int64 `json:"ids"`
@@ -341,8 +503,8 @@ func (h *Handler) APIReorderItems(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "invalid request", http.StatusBadRequest)
 		return
 	}
-	if err := h.db.ReorderItems(req.IDs); err != nil {
-		jsonError(w, "failed to reorder items", http.StatusInternalServerError)
+	if err := h.db.ReorderCategories(req.IDs); err != nil {
+		jsonError(w, "failed to reorder categories", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

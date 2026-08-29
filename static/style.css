@@ -14,6 +14,13 @@
   --danger:       #dc2626;
   --danger-hover: #b91c1c;
   --shadow:       0 1px 3px rgba(0, 0, 0, 0.08);
+
+  --cat-0: #16a34a; /* Grün */
+  --cat-1: #0ea5e9; /* Blau */
+  --cat-2: #d97706; /* Amber */
+  --cat-3: #e11d48; /* Rosa */
+  --cat-4: #7c3aed; /* Violett */
+  --cat-5: #0d9488; /* Türkis */
 }
 
 [data-theme="dark"] {
@@ -27,6 +34,13 @@
   --danger:       #ef4444;
   --danger-hover: #dc2626;
   --shadow:       0 1px 3px rgba(0, 0, 0, 0.4);
+
+  --cat-0: #22c55e;
+  --cat-1: #38bdf8;
+  --cat-2: #f59e0b;
+  --cat-3: #fb7185;
+  --cat-4: #a78bfa;
+  --cat-5: #2dd4bf;
 }
 
 /* ── Base ────────────────────────────────────────────────────────────────── */
@@ -73,6 +87,8 @@ header h1 {
   align-items: center;
   gap: 0.625rem;
 }
+
+.logout-form { display: inline; }
 
 /* ── Main ────────────────────────────────────────────────────────────────── */
 main {
@@ -173,6 +189,12 @@ input[type="password"] {
   outline: none;
   width: 100%;
   transition: border-color 0.15s, box-shadow 0.15s;
+  /* Several inputs sit inside SortableJS-managed, natively draggable
+     ancestors (<li class="item">, .category-block) — without this, a
+     click-drag to place the caret or select text can be hijacked by the
+     browser as starting a drag of that ancestor instead. */
+  -webkit-user-drag: none;
+  user-select: text;
 }
 
 input:focus {
@@ -206,7 +228,7 @@ input[type="number"]::-webkit-inner-spin-button {
 .add-form input[type="number"] { width: 5rem; flex-shrink: 0; }
 
 /* ── Items list ──────────────────────────────────────────────────────────── */
-#items-list {
+.items-list {
   list-style: none;
   display: flex;
   flex-direction: column;
@@ -336,7 +358,7 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 /* ── Filter: hide already-checked items without reordering ──────────────── */
-#items-list.filter-active .item.checked {
+.items-list.filter-active .item.checked {
   display: none;
 }
 
@@ -426,8 +448,161 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 /* Hide insert zones when filter is active */
-#items-list.filter-active .insert-zone {
+.items-list.filter-active .insert-zone {
   display: none;
+}
+
+/* ── Categories ──────────────────────────────────────────────────────────── */
+#categories-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.category-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+/* Author CSS with an unconditional `display` always beats the browser's
+   [hidden] UA-stylesheet rule, regardless of specificity — this override is
+   required or the "Ohne Kategorie" auto-hide silently does nothing. */
+.category-block[hidden] { display: none; }
+
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: color-mix(in srgb, var(--cat, var(--text-muted)) 10%, var(--surface));
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--cat, var(--border));
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.625rem;
+  transition: background 0.15s, outline-color 0.15s;
+  outline: 2px dashed transparent;
+  outline-offset: -2px;
+}
+
+.cat-color-0 { --cat: var(--cat-0); }
+.cat-color-1 { --cat: var(--cat-1); }
+.cat-color-2 { --cat: var(--cat-2); }
+.cat-color-3 { --cat: var(--cat-3); }
+.cat-color-4 { --cat: var(--cat-4); }
+.cat-color-5 { --cat: var(--cat-5); }
+
+/* Hovering a dragged item over a collapsed category's header for a moment
+   opens it — this is the "about to open" cue during that dwell. */
+.category-header.dwell-hover {
+  background: color-mix(in srgb, var(--cat, var(--accent)) 22%, var(--surface));
+  outline-color: color-mix(in srgb, var(--cat, var(--accent)) 55%, transparent);
+}
+
+.category-header--static {
+  background: var(--surface);
+  border-left-color: var(--border);
+}
+
+.group-handle {
+  cursor: grab;
+  color: var(--cat, var(--text-muted));
+  font-size: 1.1rem;
+  user-select: none;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.group-handle:active { cursor: grabbing; }
+
+.category-toggle {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  min-width: 2rem;
+  min-height: 2.75rem;
+  border-radius: 0.25rem;
+  transition: background 0.15s;
+}
+.category-toggle:hover { background: var(--border); }
+@media (prefers-reduced-motion: no-preference) {
+  .category-toggle { transition: transform 0.15s, background 0.15s; }
+}
+.category-block.collapsed .category-toggle { transform: rotate(-90deg); }
+
+.category-block.collapsed .items-list,
+.category-block.collapsed .category-add-btn {
+  display: none;
+}
+
+.category-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.1s;
+}
+.category-name:hover { background: var(--border); }
+.category-header--static .category-name { cursor: default; }
+.category-header--static .category-name:hover { background: none; }
+
+.category-name-input {
+  flex: 1;
+  min-width: 0;
+  width: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.category-count {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--cat, var(--text-muted));
+  background: color-mix(in srgb, var(--cat, var(--text-muted)) 16%, transparent);
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.uncategorize-btn { color: var(--text-muted); }
+
+.category-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  width: 100%;
+  min-height: 2.75rem;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.category-add-btn:hover { background: var(--border); color: var(--text); border-color: transparent; }
+.category-add-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.new-category-form {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 0.5rem;
+  padding: 0.625rem;
+}
+.new-category-form input {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
 }
 
 /* ── Login page ──────────────────────────────────────────────────────────── */
