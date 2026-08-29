@@ -81,3 +81,4 @@ helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
 | serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
 | serviceAccount.name | string | `""` | Name of the service account to use. If not set and create is true, a name is generated using the fullname template |
 | tolerations | list | `[]` | Tolerations for pod scheduling |
+| updateStrategy.type | string | `""` | Deployment update strategy type. Leave empty to auto-select: `Recreate` when persistence is enabled with `ReadWriteOnce` access mode (avoids rollout deadlocks where the new pod can't attach the volume while the old pod still holds it), `RollingUpdate` otherwise. |

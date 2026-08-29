@@ -80,6 +80,14 @@ persistence:
   # -- Annotations to add to the PVC.
   annotations: {}
 
+# ── Deployment ────────────────────────────────────────────────────────────────
+updateStrategy:
+  # -- Deployment update strategy type. Leave empty to auto-select: `Recreate` when
+  # persistence is enabled with `ReadWriteOnce` access mode (avoids rollout deadlocks
+  # where the new pod can't attach the volume while the old pod still holds it),
+  # `RollingUpdate` otherwise.
+  type: ""
+
 # ── Networking ────────────────────────────────────────────────────────────────
 networking:
   # -- Networking type: `gateway` creates a Gateway API HTTPRoute, `ingress` creates a classic Kubernetes Ingress

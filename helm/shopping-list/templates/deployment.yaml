@@ -6,6 +6,12 @@ metadata:
     {{- include "shopping-list.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  {{- $autoStrategy := "RollingUpdate" }}
+  {{- if and .Values.persistence.enabled (eq .Values.persistence.accessMode "ReadWriteOnce") }}
+  {{- $autoStrategy = "Recreate" }}
+  {{- end }}
+  strategy:
+    type: {{ .Values.updateStrategy.type | default $autoStrategy }}
   selector:
     matchLabels:
       {{- include "shopping-list.selectorLabels" . | nindent 6 }}
