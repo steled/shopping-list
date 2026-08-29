@@ -116,44 +116,42 @@ jobs:
       # ── GitHub Release ───────────────────────────────────────────────────────
 
       - name: Generate changelog
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          RANGE="${PREVIOUS_TAG:+${PREVIOUS_TAG}..}HEAD"
 
-          if [ -n "$PREVIOUS_TAG" ]; then
-            PREV_DATE=$(git log -1 --format="%cI" "${PREVIOUS_TAG}")
-          else
-            PREV_DATE="1970-01-01T00:00:00Z"
-          fi
-          CURR_DATE=$(git log -1 --format="%cI" HEAD)
-
-          MERGED_PRS=$(gh api \
-            "repos/${{ github.repository }}/pulls?state=closed&base=main&per_page=100" \
-            | jq -r --arg prev "$PREV_DATE" --arg curr "$CURR_DATE" \
-            '[.[] | select(.merged_at != null and .merged_at > $prev and .merged_at <= $curr)
-              | {title: .title, number: .number}] | reverse | .[] | "\(.title)\t\(.number)"')
-
+          # Walk main's direct history (one entry per PR merge or direct push),
+          # so commits pushed straight to main are captured too, not just PRs.
           BREAKING=""
           FEATURES=""
           FIXES=""
           CHORE=""
 
-          while IFS=$'\t' read -r title number; do
-            [ -z "$title" ] && continue
-            echo "$title" | grep -qE "^chore: update version references" && continue
-            URL="https://github.com/${{ github.repository }}/pull/${number}"
-            LINE="- ${title} ([#${number}](${URL}))"
-            if echo "$title" | grep -qE "^[a-z]+(\(.+\))?!:|BREAKING CHANGE"; then
+          while IFS= read -r sha; do
+            SUBJECT=$(git log -1 --format="%s" "$sha")
+            if echo "$SUBJECT" | grep -qE "^Merge pull request #[0-9]+ from"; then
+              NUMBER=$(echo "$SUBJECT" | grep -oE "#[0-9]+" | tr -d '#')
+              TITLE=$(git log -1 --format="%b" "$sha" | head -1)
+              URL="https://github.com/${{ github.repository }}/pull/${NUMBER}"
+              LINE="- ${TITLE} ([#${NUMBER}](${URL}))"
+            else
+              TITLE="$SUBJECT"
+              LINE="- ${TITLE} (${sha:0:7})"
+            fi
+
+            [ -z "$TITLE" ] && continue
+            echo "$TITLE" | grep -qE "^chore: update version references" && continue
+
+            if echo "$TITLE" | grep -qE "^[a-z]+(\(.+\))?!:|BREAKING CHANGE"; then
               BREAKING="${BREAKING}\n${LINE}"
-            elif echo "$title" | grep -qE "^feat(\(.+\))?:"; then
+            elif echo "$TITLE" | grep -qE "^feat(\(.+\))?:"; then
               FEATURES="${FEATURES}\n${LINE}"
-            elif echo "$title" | grep -qE "^fix(\(.+\))?:|^perf(\(.+\))?:"; then
+            elif echo "$TITLE" | grep -qE "^fix(\(.+\))?:|^perf(\(.+\))?:"; then
               FIXES="${FIXES}\n${LINE}"
             else
               CHORE="${CHORE}\n${LINE}"
             fi
-          done <<< "$MERGED_PRS"
+          done < <(git log "$RANGE" --first-parent --pretty=format:"%H")
 
           {
             echo "RELEASE_NOTES<<EOF"
