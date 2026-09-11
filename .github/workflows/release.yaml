@@ -225,6 +225,11 @@ jobs:
           yq -i ".version = \"${VERSION}\"" "${HELM_CHART_PATH}/Chart.yaml"
           yq -i ".appVersion = \"${TAG}\"" "${HELM_CHART_PATH}/Chart.yaml"
 
+          # Re-run helm-docs against the bumped Chart.yaml so the chart's own
+          # README (version badges) gets committed too, not just regenerated
+          # transiently for the packaged .tgz artifact.
+          helm-docs --chart-search-root "${HELM_CHART_PATH}"
+
           sed -i "s|--version [0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*|--version ${VERSION}|g" README.md
 
           if git diff --quiet; then
@@ -232,7 +237,7 @@ jobs:
             exit 0
           fi
 
-          git add helm/shopping-list/Chart.yaml README.md
+          git add helm/shopping-list/Chart.yaml helm/shopping-list/README.md README.md
           git commit -m "chore: update version references to ${TAG} [skip ci]"
           git push origin "${BRANCH}"
 

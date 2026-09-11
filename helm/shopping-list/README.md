@@ -1,6 +1,6 @@
 # shopping-list
 
-![Version: 0.1.0](https://img.shields.io/badge/Version-0.1.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.1.0](https://img.shields.io/badge/AppVersion-v0.1.0-informational?style=flat-square)
+![Version: 0.5.4](https://img.shields.io/badge/Version-0.5.4-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.5.4](https://img.shields.io/badge/AppVersion-v0.5.4-informational?style=flat-square)
 
 Lightweight shopping list web application
 
@@ -48,6 +48,7 @@ helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
 | affinity | object | `{}` | Affinity rules for pod scheduling |
 | auth.existingSecret | string | `""` | Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret`. The pod's checksum/secret annotation is computed from this Secret's live content (via Helm's `lookup` function), so rotating it (e.g. re-sealing a SealedSecret) triggers a pod rollout on the next `helm upgrade`/ArgoCD sync — no manual `kubectl rollout restart` needed. |
 | auth.password | string | `""` | Login password: a bcrypt hash (recommended, e.g. from `htpasswd -bnBC 12 "" '<password>'`, so the plaintext never has to be stored in the Secret) or a plaintext password, which is hashed with bcrypt at startup. Required when existingSecret is empty. |
+| auth.secureCookies | bool | `true` | Set to true when the app runs behind a TLS-terminating reverse proxy (Ingress/Gateway). Ensures the session cookie carries the Secure flag even though the pod receives plain HTTP. |
 | auth.sessionSecret | string | `""` | HMAC secret used to sign session cookies (minimum 32 random bytes). Required when existingSecret is empty. |
 | auth.username | string | `"admin"` | Login username |
 | fullnameOverride | string | `""` | Full name override for all resources |
@@ -59,7 +60,7 @@ helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
 | nameOverride | string | `""` | Partial name override for all resources |
 | networking.gateway.hostname | string | `"shopping-list.tools.example.lan"` | Hostname exposed via the HTTPRoute |
 | networking.gateway.parentRefs | list | `[{"name":"api-gateway","namespace":"nginx-gateway","sectionName":""}]` | Gateway parentRefs (which Gateway and section to attach to) |
-| networking.ingress.annotations | object | `{}` | Additional annotations for the Ingress resource |
+| networking.ingress.annotations | object | `{"nginx.ingress.kubernetes.io/force-ssl-redirect":"true","nginx.ingress.kubernetes.io/ssl-redirect":"true"}` | Additional annotations for the Ingress resource. The defaults enforce HTTPS-only access via the nginx ingress controller. |
 | networking.ingress.className | string | `""` | IngressClass name |
 | networking.ingress.hostname | string | `""` | Hostname exposed via Ingress |
 | networking.ingress.tls | list | `[]` | TLS configuration for the Ingress |
