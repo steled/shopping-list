@@ -29,13 +29,20 @@ type sessionPayload struct {
 	Exp int64 `json:"exp"`
 }
 
-// New creates a new Auth instance. The password is hashed with bcrypt at
-// startup so that login attempts always perform a constant-time compare.
+// New creates a new Auth instance. password is either a bcrypt hash (e.g.
+// generated with `htpasswd -bnBC 12 "" '<password>'`, so a plaintext
+// password never has to be stored at rest in a Secret) or a plaintext
+// password, which is hashed with bcrypt at startup. Either way, login
+// attempts always perform a constant-time bcrypt compare.
 // secureCookies should be true when the app runs behind a TLS-terminating proxy.
 func New(username, password, secret string, secureCookies bool) *Auth {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		panic("auth: bcrypt hash failed: " + err.Error())
+	hash := []byte(password)
+	if _, err := bcrypt.Cost(hash); err != nil {
+		h, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			panic("auth: bcrypt hash failed: " + err.Error())
+		}
+		hash = h
 	}
 	return &Auth{
 		username:      username,

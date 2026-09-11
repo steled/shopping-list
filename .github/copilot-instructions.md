@@ -57,7 +57,7 @@ helm/shopping-list/         # Helm chart
 | Variable            | Description                              | Default              |
 |---------------------|------------------------------------------|----------------------|
 | `APP_USERNAME`      | Login username                           | `admin`              |
-| `APP_PASSWORD`      | Login password (bcrypt-compared)         | **required**         |
+| `APP_PASSWORD`      | Login password: plaintext (hashed at startup) or pre-computed bcrypt hash | **required**         |
 | `APP_SESSION_SECRET`| HMAC key for session cookie signing      | **required**         |
 | `DATABASE_PATH`     | SQLite file path                         | `/data/shopping.db`  |
 | `APP_ADDR`          | Listen address                           | `:8080`              |
