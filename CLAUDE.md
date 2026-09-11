@@ -33,7 +33,7 @@ Nach jeder Änderung an CSS, Templates oder JavaScript ist folgende Checkliste z
 - [ ] **Kontrast**: Text gegen Hintergrund mind. WCAG AA (4.5:1) — auch im Dark Mode?
 - [ ] **Keine Inline-Styles**: Ausschließlich CSS-Klassen, kein `style="…"` in Templates?
 - [ ] **Schriftgrößen**: Mindestens 0.875rem (14px) für UI-Text?
-- [ ] **Icons**: SVG bevorzugen gegenüber Emojis für interaktive Elemente?
+- [ ] **Icons**: SVG bevorzugen gegenüber Emojis für interaktive Elemente — außer bei bereits etablierten Emoji-Icons (z. B. Theme-Toggle 🌙/☀️, Cart-Icon 🛒), deren Fortführung Konsistenz mit dem Bestand schafft?
 - [ ] **Dark Mode**: Neue Komponenten in beiden Themes geprüft?
 - [ ] **Reduzierte Bewegung**: Animationen respektieren `prefers-reduced-motion`?
 - [ ] **Neue CSS-Utilities**: Als Klassen in `style.css` angelegt, nicht als One-off-Inline-Styles?
