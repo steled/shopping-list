@@ -61,7 +61,10 @@ auth:
   password: ""
   # -- HMAC secret used to sign session cookies (minimum 32 random bytes). Required when existingSecret is empty.
   sessionSecret: ""
-  # -- Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret`
+  # -- Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret`.
+  # The pod's checksum/secret annotation is computed from this Secret's live content (via Helm's `lookup`
+  # function), so rotating it (e.g. re-sealing a SealedSecret) triggers a pod rollout on the next
+  # `helm upgrade`/ArgoCD sync — no manual `kubectl rollout restart` needed.
   existingSecret: ""
   # -- Set to true when the app runs behind a TLS-terminating reverse proxy (Ingress/Gateway).
   # Ensures the session cookie carries the Secure flag even though the pod receives plain HTTP.

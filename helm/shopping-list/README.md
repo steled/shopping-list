@@ -46,7 +46,7 @@ helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling |
-| auth.existingSecret | string | `""` | Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret` |
+| auth.existingSecret | string | `""` | Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret`. The pod's checksum/secret annotation is computed from this Secret's live content (via Helm's `lookup` function), so rotating it (e.g. re-sealing a SealedSecret) triggers a pod rollout on the next `helm upgrade`/ArgoCD sync — no manual `kubectl rollout restart` needed. |
 | auth.password | string | `""` | Login password: a bcrypt hash (recommended, e.g. from `htpasswd -bnBC 12 "" '<password>'`, so the plaintext never has to be stored in the Secret) or a plaintext password, which is hashed with bcrypt at startup. Required when existingSecret is empty. |
 | auth.sessionSecret | string | `""` | HMAC secret used to sign session cookies (minimum 32 random bytes). Required when existingSecret is empty. |
 | auth.username | string | `"admin"` | Login username |

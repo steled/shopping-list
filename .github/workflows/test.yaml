@@ -96,6 +96,15 @@ jobs:
             --set "networking.gateway.parentRefs[0].name=prod-gateway" \
             --set "networking.gateway.parentRefs[0].namespace=gateway-system"
 
+      - name: Helm template (existingSecret)
+        run: |
+          helm template shopping-list helm/shopping-list \
+            --set auth.existingSecret=shopping-list \
+            --set networking.type=gateway \
+            --set networking.gateway.hostname=shopping.example.com \
+            --set "networking.gateway.parentRefs[0].name=prod-gateway" \
+            --set "networking.gateway.parentRefs[0].namespace=gateway-system"
+
   test:
     name: Test
     runs-on: ubuntu-latest
