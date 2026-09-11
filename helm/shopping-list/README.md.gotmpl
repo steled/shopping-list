@@ -18,6 +18,9 @@ Before installing, generate the required secrets:
 
 ```bash
 # bcrypt-hash for auth.password (requires htpasswd from apache2-utils / httpd-tools)
+# recommended so the plaintext password never has to be stored in the Secret;
+# a plaintext password also works and is hashed at startup, but won't survive
+# `kubectl get secret -o yaml` unnoticed.
 htpasswd -bnBC 12 "" 'your-password' | tr -d ':\n'
 
 # 32-byte random secret for auth.sessionSecret

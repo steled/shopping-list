@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 const testSecret = "test-hmac-secret-for-unit-tests-padding"
@@ -19,6 +21,21 @@ func TestValidate(t *testing.T) {
 	}
 	if a.Validate("other", "secret123") {
 		t.Error("expected wrong username to fail")
+	}
+}
+
+func TestValidateWithPrehashedPassword(t *testing.T) {
+	hash, err := bcrypt.GenerateFromPassword([]byte("secret123"), bcrypt.DefaultCost)
+	if err != nil {
+		t.Fatalf("failed to generate hash: %v", err)
+	}
+	a := New("admin", string(hash), testSecret, false)
+
+	if !a.Validate("admin", "secret123") {
+		t.Error("expected the plaintext password to validate against a pre-hashed bcrypt value")
+	}
+	if a.Validate("admin", string(hash)) {
+		t.Error("expected the bcrypt hash string itself to not be treated as the password")
 	}
 }
 

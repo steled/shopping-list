@@ -55,7 +55,9 @@ service:
 auth:
   # -- Login username
   username: admin
-  # -- Login password (plain text; compared with bcrypt hash at runtime). Required when existingSecret is empty.
+  # -- Login password: a bcrypt hash (recommended, e.g. from `htpasswd -bnBC 12 "" '<password>'`, so the
+  # plaintext never has to be stored in the Secret) or a plaintext password, which is hashed with bcrypt
+  # at startup. Required when existingSecret is empty.
   password: ""
   # -- HMAC secret used to sign session cookies (minimum 32 random bytes). Required when existingSecret is empty.
   sessionSecret: ""

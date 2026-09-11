@@ -26,6 +26,9 @@ Before installing, generate the required secrets:
 
 ```bash
 # bcrypt-hash for auth.password (requires htpasswd from apache2-utils / httpd-tools)
+# recommended so the plaintext password never has to be stored in the Secret;
+# a plaintext password also works and is hashed at startup, but won't survive
+# `kubectl get secret -o yaml` unnoticed.
 htpasswd -bnBC 12 "" 'your-password' | tr -d ':\n'
 
 # 32-byte random secret for auth.sessionSecret
@@ -44,7 +47,7 @@ helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity rules for pod scheduling |
 | auth.existingSecret | string | `""` | Reference an existing Secret instead of creating one. Must contain keys: `username`, `password`, `session-secret` |
-| auth.password | string | `""` | Login password (plain text; compared with bcrypt hash at runtime). Required when existingSecret is empty. |
+| auth.password | string | `""` | Login password: a bcrypt hash (recommended, e.g. from `htpasswd -bnBC 12 "" '<password>'`, so the plaintext never has to be stored in the Secret) or a plaintext password, which is hashed with bcrypt at startup. Required when existingSecret is empty. |
 | auth.sessionSecret | string | `""` | HMAC secret used to sign session cookies (minimum 32 random bytes). Required when existingSecret is empty. |
 | auth.username | string | `"admin"` | Login username |
 | fullnameOverride | string | `""` | Full name override for all resources |

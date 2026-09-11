@@ -72,7 +72,7 @@ go test ./...
 | Variable              | Default             | Description                                              |
 |-----------------------|---------------------|----------------------------------------------------------|
 | `APP_USERNAME`        | `admin`             | Login username                                           |
-| `APP_PASSWORD`        | *(required)*        | Login password (plain text; hashed with bcrypt at startup) |
+| `APP_PASSWORD`        | *(required)*        | Login password: either a plaintext password (hashed with bcrypt at startup) or a pre-computed bcrypt hash, e.g. from `htpasswd -bnBC 12 "" '<password>'` (used as-is, so the plaintext never has to be stored at rest) |
 | `APP_SESSION_SECRET`  | *(required)*        | HMAC secret for session cookies (**min. 32 characters** — use `openssl rand -hex 32`) |
 | `APP_SECURE_COOKIES`  | `false`             | Set to `true` when running behind a TLS-terminating reverse proxy (Ingress/Gateway) to enforce the `Secure` flag on session cookies. Defaults to `true` in the Helm chart. |
 | `DATABASE_PATH`       | `/data/shopping.db` | Path to the SQLite database file                        |
