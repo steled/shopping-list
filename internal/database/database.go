@@ -100,6 +100,60 @@ func migrate(db *sql.DB) error {
 			return err
 		}
 	}
+
+	return migrateRecipes(db)
+}
+
+func migrateRecipes(db *sql.DB) error {
+	stmts := []string{
+		`CREATE TABLE IF NOT EXISTS recipes (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			name       TEXT    NOT NULL,
+			active     INTEGER NOT NULL DEFAULT 1,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS recipe_ingredients (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			recipe_id   INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+			name        TEXT    NOT NULL,
+			quantity    INTEGER NOT NULL DEFAULT 1,
+			amount      TEXT    NOT NULL DEFAULT '',
+			category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+			pantry      INTEGER NOT NULL DEFAULT 0,
+			position    INTEGER NOT NULL DEFAULT 0
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_recipe ON recipe_ingredients(recipe_id)`,
+		`CREATE TABLE IF NOT EXISTS meal_plan (
+			date        TEXT    PRIMARY KEY,
+			recipe_id   INTEGER REFERENCES recipes(id) ON DELETE SET NULL,
+			transferred INTEGER NOT NULL DEFAULT 0
+		)`,
+		`CREATE TABLE IF NOT EXISTS item_sources (
+			item_id   INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+			plan_date TEXT    NOT NULL,
+			recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
+			amount    TEXT    NOT NULL DEFAULT '',
+			PRIMARY KEY (item_id, plan_date, recipe_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_item_sources_date ON item_sources(plan_date)`,
+	}
+	for _, s := range stmts {
+		if _, err := db.Exec(s); err != nil {
+			return err
+		}
+	}
+
+	// from_recipe marks items created by an ingredient transfer, so undoing a
+	// transfer never deletes an item the user added by hand.
+	hasFromRecipe, err := columnExists(db, "items", "from_recipe")
+	if err != nil {
+		return err
+	}
+	if !hasFromRecipe {
+		if _, err := db.Exec(`ALTER TABLE items ADD COLUMN from_recipe INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

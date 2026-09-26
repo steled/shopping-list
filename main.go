@@ -72,6 +72,19 @@ func main() {
 	mux.HandleFunc("PATCH /api/categories/reorder", h.RequireAuth(h.APIReorderCategories))
 	mux.HandleFunc("PUT /api/categories/{id}", h.RequireAuth(h.APIRenameCategory))
 	mux.HandleFunc("DELETE /api/categories/{id}", h.RequireAuth(h.APIDeleteCategory))
+	mux.HandleFunc("GET /plan", h.RequireAuth(h.Plan))
+	mux.HandleFunc("GET /recipes", h.RequireAuth(h.Recipes))
+	mux.HandleFunc("GET /api/recipes", h.RequireAuth(h.APIGetRecipes))
+	mux.HandleFunc("POST /api/recipes", h.RequireAuth(h.APICreateRecipe))
+	mux.HandleFunc("PUT /api/recipes/{id}", h.RequireAuth(h.APIUpdateRecipe))
+	mux.HandleFunc("DELETE /api/recipes/{id}", h.RequireAuth(h.APIDeleteRecipe))
+	mux.HandleFunc("GET /api/plan", h.RequireAuth(h.APIGetPlan))
+	mux.HandleFunc("POST /api/plan/reroll", h.RequireAuth(h.APIRerollPlan))
+	mux.HandleFunc("POST /api/plan/transfer", h.RequireAuth(h.APITransferIngredients))
+	mux.HandleFunc("PUT /api/plan/{date}", h.RequireAuth(h.APISetPlanRecipe))
+	mux.HandleFunc("POST /api/plan/{date}/reroll", h.RequireAuth(h.APIRerollPlanDay))
+	mux.HandleFunc("POST /api/plan/{date}/stale", h.RequireAuth(h.APIResolveStalePlanItems))
+	mux.HandleFunc("DELETE /api/plan/{date}/items", h.RequireAuth(h.APIRemovePlanItems))
 
 	srv := &http.Server{
 		Addr:         addr,

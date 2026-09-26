@@ -1,0 +1,15 @@
+{{define "content"}}
+<div class="page-stack">
+  <p id="recipes-summary" class="muted-text"></p>
+  <form id="add-recipe-form" class="add-form">
+    <input type="text" id="new-recipe-name" placeholder="Neues Gericht…" required autocomplete="off" maxlength="100" aria-label="Name des neuen Gerichts">
+    <button type="submit" class="btn btn-primary">＋ Anlegen</button>
+  </form>
+  <div id="recipes-root" class="page-stack">
+    <p class="muted-text">Rezepte werden geladen…</p>
+  </div>
+</div>
+<div id="toast-host"></div>
+<script src="/static/ui.js"></script>
+<script src="/static/recipes.js"></script>
+{{end}}
