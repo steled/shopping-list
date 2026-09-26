@@ -2,7 +2,10 @@
 <li class="item{{if .Checked}} checked{{end}}" data-id="{{.ID}}">
   <span class="drag-handle" aria-hidden="true">⠿</span>
   <input type="checkbox" class="item-checkbox" aria-label="Gekauft"{{if .Checked}} checked{{end}}>
-  <span class="item-name">{{.Name}}</span>
+  {{if .Sources}}<span class="item-main">
+    <span class="item-name">{{.Name}}</span>
+    <span class="item-sources">{{range .Sources}}<span class="source-chip" title="Zutat für {{.Recipe}}">🍽 {{.Recipe}} · {{.Day}}{{if .Amount}} · {{.Amount}}{{end}}</span>{{end}}</span>
+  </span>{{else}}<span class="item-name">{{.Name}}</span>{{end}}
   <input type="number" class="item-qty" value="{{.Quantity}}" min="1" max="999" aria-label="Anzahl">
   {{if .InCategory}}<button class="btn-icon uncategorize-btn" title="Aus Abteilung entfernen" aria-label="Artikel aus Abteilung entfernen">↩</button>{{end}}
   <button class="btn-icon btn-danger" title="Löschen" aria-label="Artikel löschen">🗑</button>
@@ -10,6 +13,12 @@
 {{end}}
 
 {{define "content"}}
+{{if .Pending}}
+<div class="banner" role="status">
+  <p><strong>Wochenende:</strong> {{range $i, $p := .Pending}}{{if $i}}, {{end}}{{$p.Recipe}} ({{$p.Day}}){{end}}. Die Zutaten stehen noch nicht auf der Liste.</p>
+  <a class="btn btn-primary" href="/plan?check={{.CheckDate}}">Zutaten prüfen</a>
+</div>
+{{end}}
 <form id="add-form" class="add-form">
   <input type="text" id="new-name" placeholder="Neuer Artikel…" required autocomplete="off" aria-label="Artikelname">
   <input type="number" id="new-qty" value="1" min="1" max="999" class="item-qty" aria-label="Anzahl">

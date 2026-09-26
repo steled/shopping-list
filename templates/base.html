@@ -15,6 +15,13 @@
       <button id="theme-toggle" class="btn-icon" aria-label="Dark/Light Mode wechseln" title="Dark/Light Mode">🌙</button>
       {{if .LoggedIn}}<form method="POST" action="/logout" class="logout-form"><button type="submit" class="btn-link">Abmelden</button></form>{{end}}
     </div>
+    {{if .LoggedIn}}
+    <nav class="tabs" aria-label="Bereiche">
+      <a href="/list" class="tab"{{if eq .Page "list"}} aria-current="page"{{end}}>🛒 Liste</a>
+      <a href="/plan" class="tab"{{if eq .Page "plan"}} aria-current="page"{{end}}>📅 Wochenenden</a>
+      <a href="/recipes" class="tab"{{if eq .Page "recipes"}} aria-current="page"{{end}}>📖 Rezepte</a>
+    </nav>
+    {{end}}
   </header>
   <main>
     {{template "content" .}}

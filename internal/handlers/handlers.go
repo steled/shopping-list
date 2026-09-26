@@ -16,6 +16,7 @@ import (
 
 	"github.com/steled/shopping-list/internal/auth"
 	"github.com/steled/shopping-list/internal/database"
+	"github.com/steled/shopping-list/internal/mealplan"
 )
 
 const (
@@ -97,6 +98,10 @@ type Handler struct {
 	version string
 	tmpls   map[string]*template.Template
 	limiter *loginLimiter
+	now     func() time.Time
+	// planMu serializes plan generation and changes, so two concurrent page
+	// loads can't both fill the same month with different dishes.
+	planMu sync.Mutex
 }
 
 // New creates a Handler, parsing templates from the provided filesystem.
@@ -107,15 +112,14 @@ func New(db *database.DB, a *auth.Auth, tmplFS fs.FS, version string) (*Handler,
 		version: version,
 		tmpls:   make(map[string]*template.Template),
 		limiter: newLoginLimiter(),
+		now:     time.Now,
 	}
-	var err error
-	h.tmpls["login"], err = template.ParseFS(tmplFS, "templates/base.html", "templates/login.html")
-	if err != nil {
-		return nil, err
-	}
-	h.tmpls["index"], err = template.ParseFS(tmplFS, "templates/base.html", "templates/index.html")
-	if err != nil {
-		return nil, err
+	for _, name := range []string{"login", "index", "plan", "recipes"} {
+		t, err := template.ParseFS(tmplFS, "templates/base.html", "templates/"+name+".html")
+		if err != nil {
+			return nil, err
+		}
+		h.tmpls[name] = t
 	}
 	return h, nil
 }
@@ -219,6 +223,35 @@ type itemView struct {
 	Quantity   int
 	Checked    bool
 	InCategory bool
+	Sources    []sourceView
+}
+
+// sourceView names the planned dish an item was added for, e.g. "Lasagne · Sa 03.10.".
+type sourceView struct {
+	Recipe string
+	Day    string
+	Amount string
+}
+
+// weekdayShort maps time.Weekday to its German abbreviation.
+var weekdayShort = [...]string{"So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"}
+
+func toSourceViews(sources []database.ItemSource) []sourceView {
+	out := make([]sourceView, 0, len(sources))
+	for _, s := range sources {
+		day := ""
+		if d, err := time.Parse(mealplan.DateLayout, s.Date); err == nil {
+			day = weekdayShort[d.Weekday()] + " " + d.Format("02.01.")
+		}
+		out = append(out, sourceView{Recipe: s.RecipeName, Day: day, Amount: s.Amount})
+	}
+	return out
+}
+
+// pendingDish is an upcoming weekend dish whose ingredients are not on the list yet.
+type pendingDish struct {
+	Recipe string
+	Day    string
 }
 
 // categoryView is a Category with its items already grouped and ordered,
@@ -245,17 +278,24 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sources, err := h.db.GetItemSources()
+	if err != nil {
+		slog.Error("get item sources", "err", err)
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
 	byCategory := make(map[int64][]itemView, len(categories))
 	var uncategorized []itemView
 	for _, it := range items {
+		v := itemView{
+			ID: it.ID, Name: it.Name, Quantity: it.Quantity, Checked: it.Checked,
+			InCategory: it.CategoryID != nil, Sources: toSourceViews(sources[it.ID]),
+		}
 		if it.CategoryID == nil {
-			uncategorized = append(uncategorized, itemView{
-				ID: it.ID, Name: it.Name, Quantity: it.Quantity, Checked: it.Checked, InCategory: false,
-			})
+			uncategorized = append(uncategorized, v)
 		} else {
-			byCategory[*it.CategoryID] = append(byCategory[*it.CategoryID], itemView{
-				ID: it.ID, Name: it.Name, Quantity: it.Quantity, Checked: it.Checked, InCategory: true,
-			})
+			byCategory[*it.CategoryID] = append(byCategory[*it.CategoryID], v)
 		}
 	}
 	categoryViews := make([]categoryView, 0, len(categories))
@@ -265,12 +305,60 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	pending, checkDate, err := h.pendingWeekend()
+	if err != nil {
+		// The banner is a convenience; the list itself must still render.
+		slog.Error("pending weekend", "err", err)
+	}
+
 	h.render(w, "index", map[string]any{
 		"Categories":    categoryViews,
 		"Uncategorized": uncategorized,
+		"Pending":       pending,
+		"CheckDate":     checkDate,
 		"Version":       h.version,
 		"LoggedIn":      true,
+		"Page":          "list",
 	})
+}
+
+// pendingWeekend returns the upcoming weekend's dishes whose ingredients are
+// not on the list yet, and the date the plan page should open its dialog for.
+func (h *Handler) pendingWeekend() ([]pendingDish, string, error) {
+	days := upcomingWeekend(h.today())
+	h.planMu.Lock()
+	defer h.planMu.Unlock()
+	if err := h.ensurePlan(days[len(days)-1]); err != nil {
+		return nil, "", err
+	}
+	recipes, err := h.db.GetRecipes()
+	if err != nil {
+		return nil, "", err
+	}
+	names := make(map[int64]string, len(recipes))
+	for _, r := range recipes {
+		names[r.ID] = r.Name
+	}
+	var pending []pendingDish
+	checkDate := ""
+	for _, d := range days {
+		key := d.Format(mealplan.DateLayout)
+		slot, err := h.db.GetPlanSlot(key)
+		if errors.Is(err, database.ErrNotFound) {
+			continue
+		}
+		if err != nil {
+			return nil, "", err
+		}
+		if slot.RecipeID == nil || slot.Transferred {
+			continue
+		}
+		if checkDate == "" {
+			checkDate = key
+		}
+		pending = append(pending, pendingDish{Recipe: names[*slot.RecipeID], Day: weekdayShort[d.Weekday()]})
+	}
+	return pending, checkDate, nil
 }
 
 // APIGetItems returns all items as JSON.
