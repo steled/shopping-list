@@ -77,7 +77,7 @@ helm install shopping-list oci://ghcr.io/steled/charts/shopping-list \
 | podSecurityContext | object | `{"fsGroup":1001}` | Pod-level security context |
 | readinessProbe | object | `{"failureThreshold":3,"httpGet":{"path":"/healthz","port":8080},"initialDelaySeconds":5,"periodSeconds":10}` | Readiness probe configuration |
 | replicaCount | int | `1` | Number of pod replicas |
-| resources | object | `{"limits":{"cpu":"100m","memory":"64Mi"},"requests":{"cpu":"20m","memory":"32Mi"}}` | CPU/memory resource requests and limits for the application container |
+| resources | object | `{"limits":{"cpu":"500m","memory":"64Mi"},"requests":{"cpu":"20m","memory":"32Mi"}}` | CPU/memory resource requests and limits for the application container |
 | securityContext | object | `{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"readOnlyRootFilesystem":false,"runAsGroup":1001,"runAsNonRoot":true,"runAsUser":1001}` | Container-level security context |
 | service.port | int | `8080` | Service port (should match the application listen port) |
 | service.type | string | `"ClusterIP"` | Kubernetes service type |
