@@ -57,7 +57,7 @@
     btn.className = 'btn-icon uncategorize-btn';
     btn.title = 'Aus Abteilung entfernen';
     btn.setAttribute('aria-label', 'Artikel aus Abteilung entfernen');
-    btn.textContent = '↩';
+    btn.appendChild(UI.icon('uncategorize'));
     return btn;
   }
 
@@ -324,25 +324,57 @@
 
   /* ── Uncategorize / delete a category ────────────────────────────────── */
 
+  function nextItemSibling(li) {
+    var n = li.nextElementSibling;
+    while (n && !n.matches('li.item')) n = n.nextElementSibling;
+    return n;
+  }
+
+  async function persistOrder(listEl) {
+    var ids = Array.from(listEl.querySelectorAll('li.item')).map(function (el) {
+      return parseInt(el.dataset.id, 10);
+    });
+    if (!ids.length) return;
+    var catAttr = listEl.dataset.categoryId;
+    try {
+      await api('PATCH', '/api/items/reorder', { category_id: catAttr ? parseInt(catAttr, 10) : null, ids: ids });
+    } catch (err) { console.error('reorder failed', err); }
+  }
+
+  async function undoUncategorize(li, fromList, before) {
+    var noneList = document.querySelector('.items-list[data-category-id=""]');
+    if (!li.isConnected || !fromList.isConnected || !noneList) return;
+    if (before && before.parentNode === fromList) fromList.insertBefore(li, before);
+    else fromList.appendChild(li);
+    syncUncategorizeButton(li);
+    try { await saveItem(li); } catch (err) { console.error('undo failed', err); }
+    await persistOrder(fromList);
+    await persistOrder(noneList);
+    refreshInsertZones(fromList);
+    refreshInsertZones(noneList);
+    updateCategoryCounts();
+    updateUncategorizedVisibility();
+  }
+
   async function onUncategorizeClick(li) {
     if (!li) return;
     var noneList = document.querySelector('.items-list[data-category-id=""]');
     if (!noneList) return;
     var fromList = li.closest('.items-list');
+    var before = nextItemSibling(li);
+    var name = li.querySelector('.item-name').textContent;
 
     var noneBlock = document.querySelector('.uncategorized-block');
     if (noneBlock) noneBlock.hidden = false;
     noneList.appendChild(li);
     syncUncategorizeButton(li);
+    UI.toast('„' + name + '“ nach „Ohne Kategorie“ verschoben', function () {
+      undoUncategorize(li, fromList, before);
+    });
 
     try { await saveItem(li); } catch (err) { console.error('uncategorize failed', err); }
 
-    var ids = Array.from(noneList.querySelectorAll('li.item')).map(function (el) {
-      return parseInt(el.dataset.id, 10);
-    });
-    try {
-      await api('PATCH', '/api/items/reorder', { category_id: null, ids: ids });
-    } catch (err) { console.error('reorder failed', err); }
+    await persistOrder(noneList);
 
     refreshInsertZones(noneList);
     if (fromList) refreshInsertZones(fromList);

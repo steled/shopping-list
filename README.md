@@ -24,7 +24,7 @@ A lightweight, self-hosted shopping list web application built with Go and SQLit
 
 - **Single-user authentication** — bcrypt password hashing, HMAC-signed session cookies
 - **Shopping list management** — add, edit, delete and check off items with quantities
-- **Categories ("Abteilungen")** — group items into user-defined departments (e.g. supermarket sections), drag items between categories or reorder whole categories; uncategorized items land in an auto-hiding "Ohne Kategorie" section
+- **Categories ("Abteilungen")** — group items into user-defined departments (e.g. supermarket sections), drag items between categories or reorder whole categories; uncategorized items land in an auto-hiding "Ohne Kategorie" section; the folder-minus button on an item moves it there and shows a toast with "Rückgängig" to put it back in its old spot
 - **Weekend recipes ("Wochenenden")** — maintain recipes with ingredients (quantity, optional amount, department, "Grundvorrat" flag for pantry staples); every Saturday and Sunday gets a random dish, with no dish repeating within a month while unused ones are available and repeats spaced as far apart as possible otherwise. The plan is stored once generated; single days can be re-rolled or picked manually
 - **Ingredients to shopping list** — put a day's or a whole weekend's ingredients on the list in one tap ("Alles übernehmen", skipping pantry staples) or tick off what's at home first ("Auswählen…"); equal ingredients — also ones already on the list — are merged into one entry (larger quantity wins), items show which dish they are for, and changing a dish afterwards offers to take its ingredients off the list again
 - **Drag & drop reordering** — reorder items and categories via SortableJS (bundled, no CDN)
